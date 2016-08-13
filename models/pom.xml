@@ -7,7 +7,6 @@
     <artifactId>cell-index-method</artifactId>
     <version>1.0-SNAPSHOT</version>
   </parent>
-  <groupId>ar.edu.itba.ss.cellindexmethod</groupId>
   <artifactId>models</artifactId>
   <version>1.0-SNAPSHOT</version>
   <name>models</name>
@@ -16,6 +15,17 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   <dependencies>
+    <!-- Immutables -->
+    <dependency>
+      <groupId>org.immutables</groupId>
+      <artifactId>value</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.immutables</groupId>
+      <artifactId>builder</artifactId>
+    </dependency>
+    <!-- /Immutables -->
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
