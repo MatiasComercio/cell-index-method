@@ -9,13 +9,16 @@ import java.util.*;
 public class CellIndexMethodImpl implements CellIndexMethod {
 	
 	/**
-	 * On the run method, given a cell (row, col), it is necessary to go up, up-right, right and down-right. This is:
+	 * On the run method, given a cell (row, col), it is necessary to compare with itself
+	 * and to go up, up-right, right and down-right. This is:
+	 *    itself = row, col
 	 *    up = row-1, col
 	 *    up-right = row-1, col+1
 	 *    right = row, col+1
 	 *    down-right = row+1, col+1
 	 */
 	private final static int[][] neighbourDirections = new int[][] {
+					{0, 0}, // itself
 					{-1, 0}, // up
 					{-1, +1}, // up-right
 					{0, +1}, // right
@@ -140,12 +143,12 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 						if (oRow < 0) {
 							oRow = M - 1;
 							virtualPointNeeded = true;
-							yOffset = -L;
+							yOffset = L;
 						}
 						if (oRow == M) {
 							oRow = 0;
 							virtualPointNeeded = true;
-							yOffset = L;
+							yOffset = -L;
 						}
 						if (oCol == M) {
 							oCol = 0;
@@ -192,7 +195,8 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 				vPoint = Point.builder(oPoint.x() + xOffset, oPoint.y() + yOffset)
 								.radio(oPoint.radio()).build();
 			}
-			if (CellIndexMethods.distanceBetween(cPoint, vPoint) <= rc) { // points are colliding
+			if (CellIndexMethods.distanceBetween(cPoint, vPoint) <= rc // points are colliding
+							&& !cPoint.equals(vPoint)) { // for the case of identity
 				// add each one to the set of colliding points of the other
 				collisionPerPoint.get(cPoint).add(oPoint);
 				collisionPerPoint.get(oPoint).add(cPoint);
@@ -251,10 +255,10 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		
 		final int row, col;
 		
-		row = getT(k, point.y());
-		col = (nCells - 1) - getT(k, point.x());
+		row = (nCells - 1) - getT(k, point.y());
+		col = getT(k, point.x());
 		
-		// +++xcheck: could row or col be out of bounds?
+		// if row or col is out of bounds => bad input was given ( x < 0 || x >= L || y < 0 || y >= L )
 		cellMatrix.addToCell(row, col, point);
 	}
 	
@@ -281,14 +285,15 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 	}
 	
 	private static class SquareMatrix {
-		private final ArrayList<ArrayList<Cell>> matrix;
+		private final Cell[][] matrix;
 		
 		private SquareMatrix(final int dimension) {
-			this.matrix = new ArrayList<>(dimension);
-			matrix.forEach(row -> {
-				row = new ArrayList<>(dimension);
-				row.forEach(cell -> new Cell());
-			});
+			this.matrix = new Cell[dimension][dimension];
+			for (int row = 0 ; row < dimension ; row ++) {
+				for (int col = 0 ; col < dimension ; col ++) {
+					matrix[row][col] = new Cell();
+				}
+			}
 		}
 		
 		
@@ -301,7 +306,7 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		 * @throws IndexOutOfBoundsException if row or col is lower than 0 or equal or greater than matrix's dimension
 		 */
 		private Cell get(final int row, final int col) {
-			return matrix.get(row).get(col);
+			return matrix[row][col];
 		}
 		
 		/**
@@ -318,7 +323,7 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		}
 		
 		private int dimension() {
-			return matrix.size();
+			return matrix.length;
 		}
 		
 	}

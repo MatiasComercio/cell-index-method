@@ -13,7 +13,7 @@ public interface CellIndexMethod {
 	 * of the set, considering that a collision is produced when two points are at distance lower or equal than rc,
 	 * considering both point's radios.
 	 * <p>
-	 * Points are supposed to be contained on a square with sides of length L.
+	 * Points are supposed to be contained on a square with sides of length L ( 0 <= point.x < L && 0 <= point.y < L ).
 	 * <p>
 	 * The method will divide that square in cells - with sides of length L/M -, and will use this cells
 	 * to apply the algorithm.
