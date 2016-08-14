@@ -16,36 +16,103 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static ar.edu.itba.ss.cellindexmethod.core.Main.EXIT_CODE.*;
+
 public class Main {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 	
 	private static final String DESTINATION_FOLDER = "data";
 	private static final int FIRST_PARTICLE = 1;
 	
+	
+	// Exit Codes
+	enum EXIT_CODE {
+		OK(0),
+		NO_ARGS(-1),
+		NO_FILE(-2),
+		BAD_N_ARGUMENTS(-3),
+		BAD_ARGUMENT(-4);
+		
+		private final int code;
+		
+		EXIT_CODE(final int code) {
+			this.code = code;
+		}
+		
+		public int getCode() {
+			return code;
+		}
+	}
+	
+	private static void exit(final EXIT_CODE exitCode) {
+		System.exit(exitCode.getCode());
+	}
+	
+	/*
+			Options:
+				* generate dynamic dat => gen dynamicdat
+				* run cell index method => cim data/static.dat data/dynamic.dat M rc periodicLimit
+				*                       => cim data/static.dat M rc periodicLimit
+				*
+				* generate ovito => gen ovito <particle_id>
+				
+	 */
 	public static void main(String[] args) {
 		
-		// read N, L and rs from an input file
+		if (args.length == 0) {
+			System.out.println("[FAIL] - No arguments passed. Try 'help' for more information.");
+			exit(NO_ARGS);
+		}
 		
-		// if  not given, fail and exit
-		
-		// create the points
-		generateDynamicDatFile();
-		
-		// load points from file
-		
-		
-		// generate ovito file
-		if(args.length == 2 && args[0].equals("genovito")) {
-			try {
-				final int particleId = Integer.parseInt(args[1]);
-				generateOvitoFile(particleId);
-			} catch (NumberFormatException e) {
-				LOGGER.warn("The parameter format for the particleId is incorrect");
-				System.exit(-1); // +++xmagicnumber
-			}
+		switch (args[0]) {
+			case "gen":
+				// another arg is needed
+				if (args.length < 2) {
+					System.out.println("[FAIL] - No file specified. Try 'help' for more information.");
+					exit(NO_FILE);
+				}
+				
+				switch (args[1]) {
+					case "dynamicDat":
+						// read N, L and rs from an input file
+						
+						// if not given, fail and exit
+						
+						// create the points position, given the static.dat file
+						generateDynamicDatFile();
+						break;
+					case "ovito":
+						// get particle id
+						if (args.length != 3) {
+							System.out.println("[FAIL] - Bad number of arguments. Try 'help' for more information.");
+							exit(BAD_N_ARGUMENTS);
+						}
+						
+						try {
+							final int particleId = Integer.parseInt(args[2]);
+							generateOvitoFile(particleId);
+						} catch (NumberFormatException e) {
+							LOGGER.warn("[FAIL] - <particle_id> must be a number. Caused by: ", e);
+							System.out.println("[FAIL] - <particle_id> must be a number. Try 'help' for more information.");
+							exit(BAD_ARGUMENT);
+						}
+						break;
+					
+					default:
+						System.out.println("[FAIL] - Invalid argument. Try 'help' for more information.");
+						exit(BAD_ARGUMENT);
+						break;
+				}
+			default:
+				System.out.println("[FAIL] - Invalid argument. Try 'help' for more information.");
+				exit(BAD_ARGUMENT);
+				break;
 		}
 		
 		
+		
+		
+		// load points from file
 	}
 	
 	private static void generateDynamicDatFile() {
