@@ -54,7 +54,7 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		});
 		
 		// run the cell index method itself
-		run(cellMatrix, rc, periodicLimit, collisionPerPoint);
+		run(L, cellMatrix, rc, periodicLimit, collisionPerPoint);
 		
 		// return the created map with each point information
 		return collisionPerPoint;
@@ -87,7 +87,7 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		return true;
 	}
 	
-	private void run(final SquareMatrix cellMatrix, final double rc,
+	private void run(final double L, final SquareMatrix cellMatrix, final double rc,
 	                 final boolean periodicLimit, final Map<Point, Set<Point>> collisionPerPoint) {
 		/*
 			Takes one cell at a time and applies the patter saw in class to take advantage of the symmetry of the
@@ -105,21 +105,28 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 				if row-1 < 0 || row+1 = M || col+1 = M => do not consider that cell, with M = matrix.dimension()
 			
 			if periodic limit is true
-				if row-1 < 0 => use M-1 //+++xcheck: changed from scratched: Noticed that row was always = 0 if this case was reached
-				if row+1 = M => use 0
-				if col+1 = M => use 0
+			//+++xcheck: changed from scratched: Noticed that row was always = 0 if this case was reached
+				if row-1 < 0 => use M-1 and points inside this cell should be applied an y offset of -L
+				if row+1 = M => use 0 and points inside this cell should be applied an y offset of + L
+				if col+1 = M => use 0 and points inside this cell should be applied an x offset of + L
 				
 				, with M = matrix.dimension()
 				
 		 */
 		
 		final int M = cellMatrix.dimension();
+		boolean virtualPointNeeded;
+		double xOffset, yOffset;
 		int oRow, oCol;
 		Cell cCell, oCell;
 		for (int row = 0 ; row < M ; row ++) {
 			for (int col = 0 ; col < M ; col ++) {
 				cCell = cellMatrix.get(row, col); // get current cell
 				for (final int[] neighbourDirection : neighbourDirections) { // travel getting different neighbours
+					virtualPointNeeded = false;
+					xOffset = 0;
+					yOffset = 0;
+					
 					// get the other cell's row & col
 					oRow = row + neighbourDirection[ROW];
 					oCol = col + neighbourDirection[COL];
@@ -132,12 +139,18 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 					} else {
 						if (oRow < 0) {
 							oRow = M - 1;
+							virtualPointNeeded = true;
+							yOffset = -L;
 						}
 						if (oRow == M) {
 							oRow = 0;
+							virtualPointNeeded = true;
+							yOffset = L;
 						}
 						if (oCol == M) {
 							oCol = 0;
+							virtualPointNeeded = true;
+							xOffset = L;
 						}
 					}
 					
@@ -145,16 +158,41 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 					
 					// check the distance between each pair of points on the current pair of cells,
 					// and add the necessary mappings, if two points collide
-					checkCollisions(cCell, oCell, rc, collisionPerPoint);
+					checkCollisions(cCell, oCell, rc, collisionPerPoint, virtualPointNeeded, xOffset, yOffset);
 				}
 			}
 		}
 	}
 	
+	/**
+	 * Check, for each pair of points on each cell (c = current, o = other), if they are colliding, i.e.,
+	 * if the distance between them is lower or equal to rc, considering their radios too.
+	 * <p>
+	 * If so, each of them are added to the other's collision set at the given map.
+	 * <p>
+	 * Notice that if a virtual point is needed, virtualPointNeeded should be true, and xOffset and yOffset
+	 * should have the corresponding values to be applied to all the points of the oCell.
+	 * A virtual point should be needed when a border case is reached and a periodic limit is being considered.
+	 * @param cCell current cell being analysed
+	 * @param oCell other cell whose points will be compared to the cCell's points
+	 * @param rc max distance to consider that two points are colliding
+	 * @param collisionPerPoint map containing all the points and a set with the already found colliding points, for each
+	 * @param virtualPointNeeded whether a virtual point is needed or not
+	 * @param xOffset x offset to be applied to all the oCell's points when creating the new virtual point
+	 * @param yOffset y offset to be applied to all the oCell's points when creating the new virtual point
+	 */
 	private void checkCollisions(final Cell cCell, final Cell oCell, final double rc,
-	                 final Map<Point, Set<Point>> collisionPerPoint) {
+	                 final Map<Point, Set<Point>> collisionPerPoint,
+	                             final boolean virtualPointNeeded,
+	                             final double xOffset, final double yOffset) {
 		cCell.points.forEach(cPoint -> oCell.points.forEach(oPoint -> {
-			if (CellIndexMethods.distanceBetween(cPoint, oPoint) <= rc) { // points are colliding
+			Point vPoint = oPoint;
+			if (virtualPointNeeded) {
+				// a virtual point should be considered instead of the real one
+				vPoint = Point.builder(oPoint.x() + xOffset, oPoint.y() + yOffset)
+								.radio(oPoint.radio()).build();
+			}
+			if (CellIndexMethods.distanceBetween(cPoint, vPoint) <= rc) { // points are colliding
 				// add each one to the set of colliding points of the other
 				collisionPerPoint.get(cPoint).add(oPoint);
 				collisionPerPoint.get(oPoint).add(cPoint);
