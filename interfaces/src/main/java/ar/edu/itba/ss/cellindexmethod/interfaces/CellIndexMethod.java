@@ -17,6 +17,9 @@ public interface CellIndexMethod {
 	 * <p>
 	 * The method will divide that square in cells - with sides of length L/M -, and will use this cells
 	 * to apply the algorithm.
+	 * <p>
+	 * Important note: take into consideration that this algorithm for work requires that
+	 * the condition L/M > rc + r1 + r2 is met for every pair of points. If this was not to happen, null is returned
 	 *
 	 * @param points set containing the points for the algorithm
 	 * @param L length of the side of the square containing all the points of the set
@@ -24,7 +27,8 @@ public interface CellIndexMethod {
 	 * @param rc max distance to consider that two points
 	 * @param periodicLimit if the end of a limit cell should be consider as it were from the opposite side
 	 * @return a map containing as key each of the points of the set, and a list of the points with the ones
-	 * each point collides
+	 * each point collides; if M is <= 0, an empty map is returned ; if condition L/M > rc + r1 + r2 is not met,
+	 * null is returned
 	 */
-	Map<Point, Set<Point>> collision(Set<Point> points, double L, int M, double rc, boolean periodicLimit);
+	Map<Point, Set<Point>> run(Set<Point> points, double L, int M, double rc, boolean periodicLimit);
 }

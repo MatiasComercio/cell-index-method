@@ -3,39 +3,144 @@ package ar.edu.itba.ss.cellindexmethod.services;
 import ar.edu.itba.ss.cellindexmethod.interfaces.CellIndexMethod;
 import ar.edu.itba.ss.cellindexmethod.models.Point;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 public class CellIndexMethodImpl implements CellIndexMethod {
 	
-	
+	/**
+	 * On the run method, given a cell (row, col), it is necessary to go up, up-right, right and down-right. This is:
+	 *    up = row-1, col
+	 *    up-right = row-1, col+1
+	 *    right = row, col+1
+	 *    down-right = row+1, col+1
+	 */
+	private final static int[][] neighbourDirections = new int[][] {
+					{-1, 0}, // up
+					{-1, +1}, // up-right
+					{0, +1}, // right
+					{+1, +1} // down-right
+	};
+	private static final int ROW = 0;
+	private static final int COL = 1;
 	
 	@Override
-	public Map<Point, Set<Point>> collision(final Set<Point> points,
+	public Map<Point, Set<Point>> run(final Set<Point> points,
 	                                        final double L,
 	                                        final int M,
 	                                        final double rc,
 	                                        final boolean periodicLimit) {
-		
 		// create the square cell matrix
 		final SquareMatrix cellMatrix = new SquareMatrix(M);
 		
-
+		final Map<Point, Set<Point>> collisionPerPoint = new HashMap<>(points.size());
 		
-		// put each point on the corresponding cell on the matrix
-		saveToMatrix(L, M, points, cellMatrix);
+		if (M <= 0) {
+			return collisionPerPoint;
+		}
 		
+		// ********************************************************************
+		// ********************************************************************
+		// ********************************************************************
+		// +++xtodo TODO: check the condition L/M > rc + r1 + r2 for each pair of points.
+		// if condition is not met, null should be returned.
+		// ********************************************************************
+		// ********************************************************************
+		// ********************************************************************
 		
+		points.forEach(point -> {
+			// add the point to the map to be returned, with a new empty set
+			collisionPerPoint.put(point, new HashSet<>());
+			
+			// put each point on the corresponding cell of the cell's matrix
+			saveToMatrix(L, M, point, cellMatrix);
+		});
 		
-		return null; // +++ xdoing
+		// run the cell index method itself
+		run(cellMatrix, rc, periodicLimit, collisionPerPoint);
+		
+		// return the created map with each point information
+		return collisionPerPoint;
+	}
+	
+	private void run(final SquareMatrix cellMatrix, final double rc,
+	                 final boolean periodicLimit, final Map<Point, Set<Point>> collisionPerPoint) {
+		/*
+			Takes one cell at a time and applies the patter saw in class to take advantage of the symmetry of the
+			 method. Let's explain it a little bit.
+			
+			Given a cell (row, col), it is necessary to go up, up-right, right and down-right. This is:
+			* up = row-1, col
+			* up-right = row-1, col+1
+			* right = row, col+1
+			* down-right = row+1, col+1
+			 
+			Periodic Limit Cases
+			
+			if periodic limit is false
+				if row-1 < 0 || row+1 = M || col+1 = M => do not consider that cell, with M = matrix.dimension()
+			
+			if periodic limit is true
+				if row-1 < 0 => use M-1 //+++xcheck: changed from scratched
+				if row+1 = M => use 0
+				if col+1 = M => use 0
+				
+				, with M = matrix.dimension()
+				
+		 */
+		
+		final int M = cellMatrix.dimension();
+		int oRow, oCol;
+		Cell cCell, oCell;
+		for (int row = 0 ; row < M ; row ++) {
+			for (int col = 0 ; col < M ; col ++) {
+				cCell = cellMatrix.get(row, col); // get current cell
+				for (final int[] neighbourDirection : neighbourDirections) { // travel getting different neighbours
+					// get the other cell's row & col
+					oRow = row + neighbourDirection[ROW];
+					oCol = col + neighbourDirection[COL];
+					
+					// adapt to periodicLimit condition
+					if (!periodicLimit) {
+						if (oRow < 0 || oRow == M || oCol == M) {
+							continue; // do not consider this cell, because it does not exists
+						}
+					} else {
+						if (oRow < 0) {
+							oRow = M - 1;
+						}
+						if (oRow == M) {
+							oRow = 0;
+						}
+						if (oCol == M) {
+							oCol = 0;
+						}
+					}
+					
+					oCell = cellMatrix.get(oRow, oCol);
+					
+					// check the distance between each pair of points on the current pair of cells,
+					// and add the necessary mappings, if two points collide
+					checkCollisions(cCell, oCell, rc, collisionPerPoint);
+				}
+			}
+		}
+	}
+	
+	private void checkCollisions(final Cell cCell, final Cell oCell, final double rc,
+	                 final Map<Point, Set<Point>> collisionPerPoint) {
+		cCell.points.forEach(cPoint -> oCell.points.forEach(oPoint -> {
+			if (CellIndexMethods.distanceBetween(cPoint, oPoint) <= rc) { // points are colliding
+				// add each one to the set of colliding points of the other
+				collisionPerPoint.get(cPoint).add(oPoint);
+				collisionPerPoint.get(oPoint).add(cPoint);
+			}
+		}));
 	}
 	
 	
 	private void saveToMatrix(final double mapSideLength, final int nCells,
-	                          final Set<Point> points, final SquareMatrix cellMatrix) {
+	                          final Point point, final SquareMatrix cellMatrix) {
 		/*
 				Each point has an x & y component.
 				To get at which cell of the matrix the point belongs, here it is the idea of what's done.
@@ -66,7 +171,8 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 							
 								matrix with
 								translated t indexes
-							0 1 2 3 4
+								0 1 2 3 4
+							0
 							1
 							2
 							3
@@ -81,15 +187,13 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		
 		final double k = mapSideLength / nCells;
 		
-		points.forEach(point -> {
-			int row, col;
-			
-			row = getT(k, point.y());
-			col = (nCells - 1) - getT(k, point.x());
-			
-			// +++xcheck: could row or col be out of bounds?
-			cellMatrix.addToCell(row, col, point);
-		});
+		final int row, col;
+		
+		row = getT(k, point.y());
+		col = (nCells - 1) - getT(k, point.x());
+		
+		// +++xcheck: could row or col be out of bounds?
+		cellMatrix.addToCell(row, col, point);
 	}
 	
 	private int getT(final double k, final double v) {
@@ -119,12 +223,16 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		}
 		
 		/* +++xcheck: ¿should check if x || y are out of bounds from now on? */
-		public Cell get(final int row, final int col) {
+		private Cell get(final int row, final int col) {
 			return matrix.get(row).get(col);
 		}
 		
-		public boolean addToCell(final int row, final int col, final Point p) {
+		private boolean addToCell(final int row, final int col, final Point p) {
 			return get(row, col).points.add(p);
+		}
+		
+		private int dimension() {
+			return matrix.size();
 		}
 		
 	}
