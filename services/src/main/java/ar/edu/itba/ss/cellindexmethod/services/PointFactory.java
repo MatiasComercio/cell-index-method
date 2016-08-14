@@ -2,8 +2,10 @@ package ar.edu.itba.ss.cellindexmethod.services;
 
 import ar.edu.itba.ss.cellindexmethod.models.Point;
 
-import java.lang.reflect.Array;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 
 public class PointFactory {
 	private static PointFactory pointFactory;

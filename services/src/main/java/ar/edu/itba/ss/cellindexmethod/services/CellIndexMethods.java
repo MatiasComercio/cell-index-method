@@ -2,7 +2,8 @@ package ar.edu.itba.ss.cellindexmethod.services;
 
 import ar.edu.itba.ss.cellindexmethod.models.Point;
 
-import static java.lang.Math.*;
+import static java.lang.Math.pow;
+import static java.lang.Math.sqrt;
 
 public abstract class CellIndexMethods {
 	public static double distanceBetween(final Point p1, final Point p2) {
