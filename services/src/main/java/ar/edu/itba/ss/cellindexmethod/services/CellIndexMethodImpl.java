@@ -30,23 +30,20 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 	                                        final int M,
 	                                        final double rc,
 	                                        final boolean periodicLimit) {
+		// check M conditions
+		
+		if (M <= 0) {
+			throw new IllegalArgumentException("M must be > 0");
+		}
+		
+		if (!mConditionIsMet(L,M,rc,points)) {
+			return null;
+		}
+		
 		// create the square cell matrix
 		final SquareMatrix cellMatrix = new SquareMatrix(M);
 		
 		final Map<Point, Set<Point>> collisionPerPoint = new HashMap<>(points.size());
-		
-		if (M <= 0) {
-			return collisionPerPoint;
-		}
-		
-		// ********************************************************************
-		// ********************************************************************
-		// ********************************************************************
-		// +++xtodo TODO: check the condition L/M > rc + r1 + r2 for each pair of points.
-		// if condition is not met, null should be returned.
-		// ********************************************************************
-		// ********************************************************************
-		// ********************************************************************
 		
 		points.forEach(point -> {
 			// add the point to the map to be returned, with a new empty set
@@ -61,6 +58,33 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		
 		// return the created map with each point information
 		return collisionPerPoint;
+	}
+	
+	/**
+	 * Checks that the condition L/M > rc + r1 + r2 is met for each pair of points at the given set.
+	 *
+	 * @param l L
+	 * @param m M
+	 * @param rc rc
+	 * @param points set containing all the points
+	 * @return true if condition is met for every pair of points; false otherwise
+	 */
+	private boolean mConditionIsMet(final double l, final int m,
+	                                final double rc, final Set<Point> points) {
+		final List<Point> pointsAsList = new ArrayList<>(points);
+		
+		double r1, r2;
+		for (int i = 0 ; i < pointsAsList.size() ; i++) {
+			for (int j = i + 1 ; j < pointsAsList.size() ; j++) {
+				r1 = pointsAsList.get(i).radio();
+				r2 = pointsAsList.get(j).radio();
+				if (l/m <= rc + r1 + r2) {
+					return false;
+				}
+			}
+		}
+		
+		return true;
 	}
 	
 	private void run(final SquareMatrix cellMatrix, final double rc,
@@ -81,7 +105,7 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 				if row-1 < 0 || row+1 = M || col+1 = M => do not consider that cell, with M = matrix.dimension()
 			
 			if periodic limit is true
-				if row-1 < 0 => use M-1 //+++xcheck: changed from scratched
+				if row-1 < 0 => use M-1 //+++xcheck: changed from scratched: Noticed that row was always = 0 if this case was reached
 				if row+1 = M => use 0
 				if col+1 = M => use 0
 				
@@ -196,8 +220,15 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		cellMatrix.addToCell(row, col, point);
 	}
 	
+	/**
+	 *
+	 * @param k k
+	 * @param v v
+	 * @return Math.toIntExact(Math.round(Math.floor(v/k)));
+	 *
+	 * @throws ArithmeticException if Math.round(Math.floor(v/k)) overflows an int
+	 */
 	private int getT(final double k, final double v) {
-		// +++ xcheck: ArithmeticException could be thrown if the argument of Math.toIntExact overflows an int
 		return Math.toIntExact(Math.round(Math.floor(v/k)));
 	}
 	
@@ -222,11 +253,28 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 			});
 		}
 		
-		/* +++xcheck: ¿should check if x || y are out of bounds from now on? */
+		
+		/**
+		 *
+		 * @param row row index
+		 * @param col col index
+		 * @return the cell contained at the specified row and col
+		 *
+		 * @throws IndexOutOfBoundsException if row or col is lower than 0 or equal or greater than matrix's dimension
+		 */
 		private Cell get(final int row, final int col) {
 			return matrix.get(row).get(col);
 		}
 		
+		/**
+		 *
+		 * @param row row index
+		 * @param col col index
+		 * @param p point to be added to the cell specified by the given row and call
+		 * @return true if the point could be added; false otherwise
+		 *
+		 * @throws IndexOutOfBoundsException if row or col is lower than 0 or equal or greater than matrix's dimension
+		 */
 		private boolean addToCell(final int row, final int col, final Point p) {
 			return get(row, col).points.add(p);
 		}

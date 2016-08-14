@@ -27,8 +27,9 @@ public interface CellIndexMethod {
 	 * @param rc max distance to consider that two points
 	 * @param periodicLimit if the end of a limit cell should be consider as it were from the opposite side
 	 * @return a map containing as key each of the points of the set, and a list of the points with the ones
-	 * each point collides; if M is <= 0, an empty map is returned ; if condition L/M > rc + r1 + r2 is not met,
-	 * null is returned
+	 * each point collides; if condition L/M > rc + r1 + r2 is not met, null is returned
+	 *
+	 * @throws IllegalArgumentException if M <= 0
 	 */
 	Map<Point, Set<Point>> run(Set<Point> points, double L, int M, double rc, boolean periodicLimit);
 }
