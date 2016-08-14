@@ -11,7 +11,7 @@ import org.immutables.value.Value;
 )
 public abstract class PointAbs {
 	
-	private static long idGen = 0;
+	private static long idGen = 1;
 	
 	@Value.Derived
 	public long id() {

@@ -18,20 +18,22 @@ import java.util.stream.Stream;
 
 public class Main {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-
+	
 	private static final String DESTINATION_FOLDER = "data";
-
+	private static final int FIRST_PARTICLE = 1;
+	
 	public static void main(String[] args) {
-
+		
 		// read N, L and rs from an input file
-
+		
 		// if  not given, fail and exit
-
+		
 		// create the points
 		generateDynamicDatFile();
-
+		
 		// load points from file
-
+		
+		
 		// generate ovito file
 		if(args.length == 2 && args[0].equals("genovito")) {
 			try {
@@ -42,24 +44,24 @@ public class Main {
 				System.exit(-1); // +++xmagicnumber
 			}
 		}
-
-
+		
+		
 	}
-
+	
 	private static void generateDynamicDatFile() {
 		// +++xmagicnumber (should be the read ones)
 		final int N = 10;
 		final int L = 20;
 		double[] radios = new double[N];
 		Arrays.fill(radios, 2);
-
+		
 		final PointFactory pF = PointFactory.getInstance();
-
+		
 		final Point leftBottomPoint = Point.builder(0, 0).build();
 		final Point rightTopPoint = Point.builder(L, L).build();
-
+		
 		final Set<Point> pointsSet = pF.randomPoints(leftBottomPoint, rightTopPoint, radios, false, 10);
-
+		
 		// save data to a new file
 //		final String destinationFolder = "data";
 		final File dataFolder = new File(DESTINATION_FOLDER);
@@ -67,14 +69,14 @@ public class Main {
 
 		/* delete previous dynamic.dat file, if any */
 		final Path pathToDatFile = Paths.get(DESTINATION_FOLDER, "dynamic.dat");
-
+		
 		if(!deleteIfExists(pathToDatFile)) {
 			return;
 		}
 
 		/* write the new dynamic.dat file */
 		final String pointsAsFileFormat = pointsSetToString(N, L, pointsSet);
-
+		
 		BufferedWriter writer = null;
 		try {
 			writer = new BufferedWriter(new FileWriter(pathToDatFile.toFile()));
@@ -90,18 +92,18 @@ public class Main {
 					writer.close();
 				}
 			} catch (Exception ignored) {
-
+				
 			}
 		}
 	}
-
+	
 	private static String pointsSetToString(final int N, final int L, final Set<Point> pointsSet) {
 		final StringBuffer sb = new StringBuffer();
 		sb.append("t0").append('\n');
 		pointsSet.forEach(point -> sb.append(point.x()).append(' ').append(point.y()).append('\n'));
 		return sb.toString();
 	}
-
+	
 	/**
 	 *  Generate a .XYZ file which contains the following information about a particle:
 	 *  - Radius
@@ -115,66 +117,68 @@ public class Main {
 	 * @param particleId id of the particle to be assigned a color and in which its neighbours will
 	 *                   be represented with another color
 	 */
-	private static void generateOvitoFile(final int particleId) { /* TODO receive color */
+	private static void generateOvitoFile(final int particleId) {
 		final Path pathToStaticDatFile = Paths.get(DESTINATION_FOLDER, "static.dat");
 		final Path pathToDynamicDatFile = Paths.get(DESTINATION_FOLDER, "dynamic.dat");
 		final Path pathToGraphicsFile = Paths.get(DESTINATION_FOLDER, "graphics.xyz");
-
+		
 		if(!deleteIfExists(pathToGraphicsFile)) {
 			return;
 		}
-
+		
 		Stream<String> staticDatStream = null;
 		Stream<String> dynamicDatStream = null;
-
+		
 		try {
 			staticDatStream = Files.lines(pathToStaticDatFile);
 			dynamicDatStream = Files.lines(pathToDynamicDatFile);
 		} catch (IOException e) {
 			LOGGER.warn("Could not read file. Caused by: ", e); // +++ximprove
+			System.out.println("Could not read  one of these files: 'static.dat' | 'dynamic.dat'.\n" +
+							"Check the logs for a detailed info.\n" +
+							"Aborting...");
 			System.exit(-1); // +++xmagicnumber
 		}
-
+		
 		BufferedWriter writer = null;
-
+		
 		try {
-			final String stringN;
+			final String stringN; // N as string
 			final int N;
-			final Iterator staticDatIterator;
-			final Iterator dynamicDatIterator;
-
+			final Iterator<String> staticDatIterator;
+			final Iterator<String> dynamicDatIterator;
+			
 			writer = new BufferedWriter(new FileWriter(pathToGraphicsFile.toFile()));
 			staticDatIterator = staticDatStream.iterator();
 			dynamicDatIterator = dynamicDatStream.iterator();
-
-
+			
+			
 			final Collection<Integer> neighbours = getNeighbours(particleId);
-
+			
 			if(neighbours == null) {
 				return;
 			}
-
+			
 			// Write number of particles
-			stringN = String.valueOf(staticDatIterator.next());
+			stringN = staticDatIterator.next();
 			writer.write(stringN);
 			writer.newLine();
-
-			// Write a comment
+			
+			// Write a comment - mandatory for ovito
 			writer.write("This is a comment");
 			writer.newLine();
-
+			
 			// Prepare to feed the lines
 			N = Integer.valueOf(stringN);
 			staticDatIterator.next(); //Skip L value
 			dynamicDatIterator.next(); //Skip t0 value
 
-			/* Write particle information in this order
-
-			Particle_Type	Radius	X_Pos	Y_Pos
-
+			/*
+				Write particle information in this order
+				Particle_Type	Radius	X_Pos	Y_Pos
 			*/
-			for(int i = 1; i <= N; i++) {
-				// Write Particle Type +++xmagicnumber
+			for(int i = FIRST_PARTICLE; i <= N; i++) {
+				// Write Particle Type
 				if(i == particleId) {
 					writer.write(ParticleType.IMPORTANT.toString());
 				} else if(neighbours.contains(i)) {
@@ -183,18 +187,19 @@ public class Main {
 					writer.write(ParticleType.UNIMPORTANT.toString());
 				}
 				writer.write("\t");
-
+				
 				// Write Radius
-				writer.write(String.valueOf(staticDatIterator.next()) + "\t");
-
+				writer.write(staticDatIterator.next() + "\t");
+				
 				// Write X_Pos and Y_Pos
-				writer.write(String.valueOf(dynamicDatIterator.next()) + "\t");
-
+				writer.write(dynamicDatIterator.next() + "\t");
+				
 				// End line
 				writer.newLine();
 			}
-		} catch(IOException e) {
+		} catch(final IOException e) {
 			LOGGER.warn("Could not write to 'graphics.xyz'. Caused by: ", e);
+			System.out.println("Could not write to 'graphics.xyz'. Check the logs for a detailed info. Aborting...");
 			System.exit(-1);
 		} finally {
 			try {
@@ -203,12 +208,12 @@ public class Main {
 				}
 				staticDatStream.close();
 				dynamicDatStream.close();
-			} catch (IOException ignored) {
-
+			} catch (final IOException ignored) {
+				
 			}
 		}
 	}
-
+	
 	/**
 	 * Get the list of id's of neighbours of a specific particle
 	 * @param particleId id of the particle from which it will retrieve its neighbours
@@ -217,15 +222,15 @@ public class Main {
 	 */
 	private static Collection<Integer> getNeighbours(final int particleId) {
 		final Path pathToOutputDatFile = Paths.get(DESTINATION_FOLDER, "output.dat");
-
+		
 		try (final Stream<String> outputDatStream = Files.lines(pathToOutputDatFile)) {
 			final Iterator outputDatIterator = outputDatStream.iterator();
 			final Collection<Integer> neighbours = new LinkedList<>();
 			String potentialNeighbours;
-
+			
 			while (outputDatIterator.hasNext()) {
 				potentialNeighbours = String.valueOf(outputDatIterator.next());
-
+				
 				final Scanner intScanner = new Scanner(potentialNeighbours);
 				if (intScanner.hasNextInt() && intScanner.nextInt() == particleId) {
 					while (intScanner.hasNextInt()) {
@@ -240,7 +245,7 @@ public class Main {
 		}
 		return null;
 	}
-
+	
 	/**
 	 * Try to delete a file, whether it exists or not
 	 * @param pathToFile the file path that refers to the file that will be deleted
