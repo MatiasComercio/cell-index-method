@@ -10,6 +10,14 @@ import org.immutables.value.Value;
 				get = ""
 )
 public abstract class PointAbs {
+	
+	private static long idGen = 0;
+	
+	@Value.Derived
+	public long id() {
+		return idGen ++;
+	}
+	
 	@Builder.Parameter
 	public abstract double x();
 	
