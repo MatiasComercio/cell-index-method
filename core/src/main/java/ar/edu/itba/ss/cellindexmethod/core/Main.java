@@ -26,6 +26,10 @@ public class Main {
 		
 		// create the points
 		generateDynamicDatFile();
+		
+		// load points from file
+		
+		
 	}
 	
 	private static void generateDynamicDatFile() {
