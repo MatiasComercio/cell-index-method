@@ -35,4 +35,9 @@ public abstract class PointAbs {
 			throw new IllegalArgumentException("Radio should be >= 0");
 		}
 	}
+	
+	/* for testing purposes only */
+	public static void resetIdGen() {
+		idGen = 0;
+	}
 }

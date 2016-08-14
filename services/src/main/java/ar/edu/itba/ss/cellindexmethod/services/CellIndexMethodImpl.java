@@ -143,12 +143,12 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 						if (oRow < 0) {
 							oRow = M - 1;
 							virtualPointNeeded = true;
-							yOffset = -L;
+							yOffset = L;
 						}
 						if (oRow == M) {
 							oRow = 0;
 							virtualPointNeeded = true;
-							yOffset = L;
+							yOffset = -L;
 						}
 						if (oCol == M) {
 							oCol = 0;
@@ -255,10 +255,10 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		
 		final int row, col;
 		
-		row = getT(k, point.y());
-		col = (nCells - 1) - getT(k, point.x());
+		row = (nCells - 1) - getT(k, point.y());
+		col = getT(k, point.x());
 		
-		// +++xcheck: could row or col be out of bounds?
+		// if row or col is out of bounds => bad input was given ( x < 0 || x >= L || y < 0 || y >= L )
 		cellMatrix.addToCell(row, col, point);
 	}
 	
