@@ -25,13 +25,9 @@ public class Main {
 	
 	private static final String DESTINATION_FOLDER = "data";
 	private static final int FIRST_PARTICLE = 1;
-	private static final int X_INDEX = 0;
-	private static final int Y_INDEX = 1;
-	
 	
 	// Exit Codes
 	enum EXIT_CODE {
-		OK(0),
 		NO_ARGS(-1),
 		NO_FILE(-2),
 		BAD_N_ARGUMENTS(-3),
@@ -182,9 +178,7 @@ public class Main {
 		final StringBuilder sb = new StringBuilder();
 		pointsWithNeighbours.forEach((point, neighbours) -> {
 			sb.append(point.id());
-			neighbours.forEach(neighbour -> {
-				sb.append('\t').append(neighbour.id());
-			});
+			neighbours.forEach(neighbour -> sb.append('\t').append(neighbour.id()));
 			sb.append('\n');
 		});
 		return sb.toString();
