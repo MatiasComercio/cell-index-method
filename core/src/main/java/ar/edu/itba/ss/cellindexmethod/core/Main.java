@@ -157,6 +157,7 @@ public class Main {
 		try {
 			writer = new BufferedWriter(new FileWriter(pathToDatFile.toFile()));
 			writer.write(String.valueOf(deltaTime)); // nano seconds of execution
+			writer.write("\n");
 			writer.write(data); // list of neighbours per point
 			
 		} catch (IOException e) {
@@ -480,7 +481,7 @@ public class Main {
 			double cRadio;
 			for (int i = 0 ; i < staticData.N ; i++) {
 				cLine = staticFileLines.next(); // caught runtime exception
-				cRadio = Double.valueOf(cLine.split("\t")[0]); // at least it should have one component
+				cRadio = Double.valueOf(cLine.split(" ")[0]); // at least it should have one component
 				staticData.radios[i] = cRadio;
 			}
 			
@@ -524,12 +525,11 @@ public class Main {
 			// skip time t0
 			dynamicFileLines.next();
 			
-			String[] cLineArgs;
 			double x, y;
 			for (int i = 0 ; i < staticData.radios.length ; i++) {
-				cLineArgs = dynamicFileLines.next().split("\t");
-				x = Double.valueOf(cLineArgs[X_INDEX]); // caught IndexOutOfBounds
-				y = Double.valueOf(cLineArgs[Y_INDEX]); // caught IndexOutOfBounds
+				final Scanner intScanner = new Scanner(dynamicFileLines.next());
+				x = intScanner.nextDouble(); // caught InputMismatchException
+				y = intScanner.nextDouble(); // caught InputMismatchException
 				points.add(Point.builder(x,y).radio(staticData.radios[i]).build());
 			}
 			
@@ -539,7 +539,7 @@ public class Main {
 							"Check the logs for more info.\n" +
 							"Aborting...");
 			exit(UNEXPECTED_ERROR);
-		} catch (final NumberFormatException e) {
+		} catch (final InputMismatchException e) {
 			LOGGER.warn("[FAIL] - Number expected. Caused by: ", e);
 			System.out.println("[FAIL] - Bad format of file '" + dynamicFile + "'.\n" +
 							"Check the logs for more info.\n" +
