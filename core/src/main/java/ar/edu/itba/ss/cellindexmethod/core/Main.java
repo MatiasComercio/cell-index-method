@@ -23,8 +23,12 @@ import static ar.edu.itba.ss.cellindexmethod.core.Main.EXIT_CODE.*;
 public class Main {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 	
-	private static final String DESTINATION_FOLDER = "data";
+	private static final String DESTINATION_FOLDER = "output";
 	private static final int FIRST_PARTICLE = 1;
+	private static final String STATIC_FILE = "static.dat";
+	private static final String DYNAMIC_FILE = "dynamic.dat";
+	private static final String OUTPUT_FILE = "output.dat";
+	private static final String OVITO_FILE = "graphics.xyz";
 	
 	// Exit Codes
 	enum EXIT_CODE {
@@ -55,7 +59,7 @@ public class Main {
 			Options:
 				* generate static dat => gen staticdat N L r
 				* generate dynamic dat => gen dynamicdat data/static.dat
-				* generate ovito => gen ovito <particle_id>
+				* generate ovito => gen ovito data/static.dat data/dynamic.dat data/output.dat <particle_id>
 				* run cell index method => cim data/static.dat data/dynamic.dat M rc periodicLimit
 	 */
 	public static void main(String[] args) {
@@ -154,7 +158,7 @@ public class Main {
 		dataFolder.mkdirs(); // tries to make directories for the .dat files
 
 		/* delete previous dynamic.dat file, if any */
-		final Path pathToDatFile = Paths.get(DESTINATION_FOLDER, "output.dat");
+		final Path pathToDatFile = Paths.get(DESTINATION_FOLDER, OUTPUT_FILE);
 		
 		if(!deleteIfExists(pathToDatFile)) {
 			return;
@@ -171,8 +175,8 @@ public class Main {
 			writer.write(data); // list of neighbours per point
 			
 		} catch (IOException e) {
-			LOGGER.warn("An unexpected IO Exception occurred while writing the file {}. Caused by: ", "output.dat", e);
-			System.out.println("[FAIL] - An unexpected error occurred while writing the file '" + "output.dat" + "'. \n" +
+			LOGGER.warn("An unexpected IO Exception occurred while writing the file {}. Caused by: ", pathToDatFile, e);
+			System.out.println("[FAIL] - An unexpected error occurred while writing the file '" + pathToDatFile + "'. \n" +
 							"Check the logs for more info.\n" +
 							"Aborting...");
 			exit(UNEXPECTED_ERROR);
@@ -257,14 +261,18 @@ public class Main {
 			
 			case "ovito":
 				// get particle id
-				if (args.length != 3) {
+				if (args.length != 6) {
 					System.out.println("[FAIL] - Bad number of arguments. Try 'help' for more information.");
 					exit(BAD_N_ARGUMENTS);
 				}
 				
+				final String staticFile = args[2];
+				final String dynamicFile = args[3];
+				final String outputFile = args[4];
+				
 				try {
-					final int particleId = Integer.parseInt(args[2]);
-					generateOvitoFile(particleId);
+					final int particleId = Integer.parseInt(args[5]);
+					generateOvitoFile(staticFile, dynamicFile, outputFile, particleId);
 				} catch (NumberFormatException e) {
 					LOGGER.warn("[FAIL] - <particle_id> must be a number. Caused by: ", e);
 					System.out.println("[FAIL] - <particle_id> must be a number. Try 'help' for more information.");
@@ -285,7 +293,7 @@ public class Main {
 		dataFolder.mkdirs(); // tries to make directories for the .dat files
 
 		/* delete previous dynamic.dat file, if any */
-		final Path pathToDatFile = Paths.get(DESTINATION_FOLDER, "static.dat");
+		final Path pathToDatFile = Paths.get(DESTINATION_FOLDER, STATIC_FILE);
 		
 		if(!deleteIfExists(pathToDatFile)) {
 			return;
@@ -306,8 +314,8 @@ public class Main {
 			}
 			
 		} catch (IOException e) {
-			LOGGER.warn("An unexpected IO Exception occurred while writing the file {}. Caused by: ", "output.dat", e);
-			System.out.println("[FAIL] - An unexpected error occurred while writing the file '" + "output.dat" + "'. \n" +
+			LOGGER.warn("An unexpected IO Exception occurred while writing the file {}. Caused by: ", pathToDatFile, e);
+			System.out.println("[FAIL] - An unexpected error occurred while writing the file '" + pathToDatFile + "'. \n" +
 							"Check the logs for more info.\n" +
 							"Aborting...");
 			exit(UNEXPECTED_ERROR);
@@ -340,12 +348,11 @@ public class Main {
 		}
 		
 		// save data to a new file
-//		final String destinationFolder = "data";
 		final File dataFolder = new File(DESTINATION_FOLDER);
 		dataFolder.mkdirs(); // tries to make directories for the .dat files
 
 		/* delete previous dynamic.dat file, if any */
-		final Path pathToDatFile = Paths.get(DESTINATION_FOLDER, "dynamic.dat");
+		final Path pathToDatFile = Paths.get(DESTINATION_FOLDER, DYNAMIC_FILE);
 		
 		if(!deleteIfExists(pathToDatFile)) {
 			return;
@@ -359,8 +366,8 @@ public class Main {
 			writer = new BufferedWriter(new FileWriter(pathToDatFile.toFile()));
 			writer.write(pointsAsFileFormat);
 		} catch (IOException e) {
-			LOGGER.warn("An unexpected IO Exception occurred while writing the file {}. Caused by: ", "output.dat", e);
-			System.out.println("[FAIL] - An unexpected error occurred while writing the file '" + "dynamic.dat" + "'. \n" +
+			LOGGER.warn("An unexpected IO Exception occurred while writing the file {}. Caused by: ", pathToDatFile, e);
+			System.out.println("[FAIL] - An unexpected error occurred while writing the file '" + pathToDatFile + "'. \n" +
 							"Check the logs for more info.\n" +
 							"Aborting...");
 			exit(UNEXPECTED_ERROR);
@@ -393,14 +400,21 @@ public class Main {
 	 *  	If it is a neighbour of the particleId then it is NEIGHBOUR
 	 *  	Else, it is UNIMPORTANT
 	 *  By default, the output file is 'graphics.xyz' which is stored in the 'data' folder.
+	 * @param staticFile
+	 * @param dynamicFile
+	 * @param outputFile
 	 * @param particleId id of the particle to be assigned a color and in which its neighbours will
-	 *                   be represented with another color
 	 */
-	private static void generateOvitoFile(final int particleId) {
-		final Path pathToStaticDatFile = Paths.get(DESTINATION_FOLDER, "static.dat");
-		final Path pathToDynamicDatFile = Paths.get(DESTINATION_FOLDER, "dynamic.dat");
-		final Path pathToGraphicsFile = Paths.get(DESTINATION_FOLDER, "graphics.xyz");
+	private static void generateOvitoFile(final String staticFile, final String dynamicFile, final String outputFile, final int particleId) {
+		final Path pathToStaticDatFile = Paths.get(staticFile);
+		final Path pathToDynamicDatFile = Paths.get(dynamicFile);
+		final Path pathToGraphicsFile = Paths.get(DESTINATION_FOLDER, OVITO_FILE);
 		
+		// save data to a new file
+		final File dataFolder = new File(DESTINATION_FOLDER);
+		dataFolder.mkdirs(); // tries to make directories for the .dat files
+
+		/* delete previous dynamic.dat file, if any */
 		if(!deleteIfExists(pathToGraphicsFile)) {
 			return;
 		}
@@ -413,7 +427,8 @@ public class Main {
 			dynamicDatStream = Files.lines(pathToDynamicDatFile);
 		} catch (IOException e) {
 			LOGGER.warn("Could not read a file. Details: ", e);
-			System.out.println("Could not read one of these files: 'static.dat' or 'dynamic.dat'.\n" +
+			System.out.println("Could not read one of these files: '" + pathToStaticDatFile + "' or '"
+							+ pathToDynamicDatFile + "'.\n" +
 							"Check the logs for a detailed info.\n" +
 							"Aborting...");
 			exit(UNEXPECTED_ERROR);
@@ -432,7 +447,7 @@ public class Main {
 			dynamicDatIterator = dynamicDatStream.iterator();
 			
 			
-			final Collection<Integer> neighbours = getNeighbours(particleId);
+			final Collection<Integer> neighbours = getNeighbours(outputFile, particleId);
 			
 			if(neighbours == null) {
 				return;
@@ -481,9 +496,11 @@ public class Main {
 				writer.newLine();
 			}
 		} catch(final IOException e) {
-			LOGGER.warn("Could not write to 'graphics.xyz'. Caused by: ", e);
-			System.out.println("Could not write to 'graphics.xyz'. Check the logs for a detailed info. Aborting...");
-			System.exit(-1);
+			LOGGER.warn("Could not write to '{}'. Caused by: ", pathToGraphicsFile, e);
+			System.out.println("Could not write to '" + pathToGraphicsFile + "'." +
+							"\nCheck the logs for a detailed info.\n" +
+							"Aborting...");
+			exit(UNEXPECTED_ERROR);
 		} finally {
 			try {
 				if(writer != null) {
@@ -499,12 +516,14 @@ public class Main {
 	
 	/**
 	 * Get the list of id's of neighbours of a specific particle
+	 *
+	 * @param outputFile
 	 * @param particleId id of the particle from which it will retrieve its neighbours
 	 * @return null if the particle does not exist;
 	 * 		   else a list of neighbours (which can be empty);
 	 */
-	private static Collection<Integer> getNeighbours(final int particleId) {
-		final Path pathToOutputDatFile = Paths.get(DESTINATION_FOLDER, "output.dat");
+	private static Collection<Integer> getNeighbours(final String outputFile, final int particleId) {
+		final Path pathToOutputDatFile = Paths.get(outputFile);
 		
 		try (final Stream<String> outputDatStream = Files.lines(pathToOutputDatFile)) {
 			final Iterator outputDatIterator = outputDatStream.iterator();
@@ -529,8 +548,8 @@ public class Main {
 				}
 			}
 		} catch (IOException e) {
-			LOGGER.warn("Could not get stream for 'output.dat' file. Caused by: ", e);
-			System.out.println("An unexpected error was encounter while reading '" + "output.dat" + "' file.\n" +
+			LOGGER.warn("Could not get stream from '{}' file. Caused by: ",outputFile, e);
+			System.out.println("An unexpected error was encounter while reading '" + outputFile + "' file.\n" +
 							"Check the logs for more info.\n" +
 							"Aborting...");
 			exit(UNEXPECTED_ERROR);

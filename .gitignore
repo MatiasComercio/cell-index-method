@@ -150,8 +150,5 @@ gradle-app.setting
 
 # Own
 logs/
-data/dynamic.dat
-data/static.dat
-data/output.dat
-data/graphics.xyz
+output/
 

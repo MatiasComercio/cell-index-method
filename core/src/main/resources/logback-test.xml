@@ -19,7 +19,7 @@
         <appender-ref ref="root-appender" />
     </root>
 
-    <logger name="ar.edu.itba.ss.cell-index-method" level="DEBUG" additivity="false">
+    <logger name="ar.edu.itba.ss.cellindexmethod" level="DEBUG" additivity="false">
         <appender-ref ref="ss-cell-index-method-appender" />
     </logger>
 
