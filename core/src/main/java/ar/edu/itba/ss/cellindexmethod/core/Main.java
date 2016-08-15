@@ -120,10 +120,23 @@ public class Main {
 			exit(BAD_ARGUMENT);
 		}
 		
+		if (M <= 0 || rc < 0 || staticData.L <= 0) {
+			System.out.println("[FAIL] - The following must not happen: M <= 0 or rc < 0 or L <= 0.\n" +
+							"Please check the input files.");
+			exit(BAD_ARGUMENT);
+		}
+		
 		// run cell index method
 		final long startTime = System.nanoTime();
 		final CellIndexMethod cim = new CellIndexMethodImpl();
 		final Map<Point, Set<Point>> pointsWithNeighbours = cim.run(points, staticData.L, M, rc, periodicLimit);
+		if (pointsWithNeighbours == null) {
+			System.out.println("[FAIL] - The M value does not met the condition: " +
+							"L/M > rc + r1 + r2 for every pair of particles.\n" +
+							"Aborting...");
+			exit(BAD_ARGUMENT);
+		}
+		
 		final long endTime = System.nanoTime();
 		
 		final long deltaTime = endTime - startTime;

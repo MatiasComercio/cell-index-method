@@ -35,8 +35,8 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 	                                        final boolean periodicLimit) {
 		// check M conditions
 		
-		if (M <= 0) {
-			throw new IllegalArgumentException("M must be > 0");
+		if (M <= 0 || rc < 0 || L <= 0) {
+			throw new IllegalArgumentException("Check that this is happening, but must not: M <= 0 or rc < 0 or L <= 0");
 		}
 		
 		if (!mConditionIsMet(L,M,rc,points)) {
