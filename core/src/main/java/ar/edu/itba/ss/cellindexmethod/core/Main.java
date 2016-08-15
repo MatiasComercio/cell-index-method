@@ -29,6 +29,29 @@ public class Main {
 	private static final String DYNAMIC_FILE = "dynamic.dat";
 	private static final String OUTPUT_FILE = "output.dat";
 	private static final String OVITO_FILE = "graphics.xyz";
+	private static final String HELP_TEXT =
+					"Cell Index Method Implementation.\n" +
+									"Arguments: \n" +
+									"* gen staticdat <N> <L> <r> : \n" +
+									"\t generates an output/static.dat file of N particles of radio r\n" +
+									"\t that will be contained on a square of side L.\n" +
+									"* gen dynamicdat <path/to/static.dat> : \n" +
+									"\t generates an output/dynamic.dat file of N particles, \n" +
+									"\t each of the specified radio, that have x & y coordinates\n" +
+									"\t between 0 (inclusive) and L (exclusive).\n" +
+									"* cim <path/to/static.dat> <path/to/dynamic.dat> <M> <rc> <periodicLimit> : \n" +
+									"\t runs the cell index method itself using the information provided by both files\n" +
+									"\t (it is recommended that these files are creating using this program or copying its\n " +
+									"\t format, to avoid problems).\n" +
+									"\t The scenario will be divided in MxM cells. <M> must be an integer > 0\n" +
+									"\t <rc> is the maximum distance (inclusive) to consider that \n" +
+									"\t two particles are colliding. Must be >= 0.\n" +
+									"\t <periodicLimit> (true or false) indicates whether the scenario is periodic or not.\n" +
+									"* gen ovito <path/to/static.dat> <path/to/dynamic.dat> <path/to/output.dat> " +
+									"<particle_id> : \n"+
+									"\t generates an output/graphics.xyz file (for Ovito) with the result of the cell index\n " +
+									"\t method (<output.dat>) generated with the other two files.\n" +
+									"\t <particle_id> is the id of the particle whose collision particles wants to be known.";
 	
 	// Exit Codes
 	enum EXIT_CODE {
@@ -56,12 +79,12 @@ public class Main {
 	}
 	
 	/*
-			Options:
-				* generate static dat => gen staticdat N L r
-				* generate dynamic dat => gen dynamicdat data/static.dat
-				* generate ovito => gen ovito data/static.dat data/dynamic.dat data/output.dat <particle_id>
-				* run cell index method => cim data/static.dat data/dynamic.dat M rc periodicLimit
-	 */
+	Options:
+		* generate static dat => gen staticdat N L r
+		* generate dynamic dat => gen dynamicdat data/static.dat
+		* generate ovito => gen ovito data/static.dat data/dynamic.dat data/output.dat <particle_id>
+		* run cell index method => cim data/static.dat data/dynamic.dat M rc periodicLimit
+*/
 	public static void main(String[] args) {
 		if (args.length == 0) {
 			System.out.println("[FAIL] - No arguments passed. Try 'help' for more information.");
@@ -69,6 +92,9 @@ public class Main {
 		}
 		
 		switch (args[0]) {
+			case "help":
+				System.out.println(HELP_TEXT);
+				break;
 			case "gen":
 				generateCase(args);
 				break;
@@ -82,6 +108,10 @@ public class Main {
 		}
 		
 		System.out.println("[DONE]");
+	}
+	
+	private static void help() {
+		
 	}
 	
 	
