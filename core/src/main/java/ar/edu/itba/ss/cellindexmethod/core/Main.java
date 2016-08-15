@@ -53,6 +53,7 @@ public class Main {
 	
 	/*
 			Options:
+				* generate static dat => gen staticdat N L r
 				* generate dynamic dat => gen dynamicdat data/static.dat
 				* generate ovito => gen ovito <particle_id>
 				* run cell index method => cim data/static.dat data/dynamic.dat M rc periodicLimit
@@ -192,7 +193,43 @@ public class Main {
 		}
 		
 		switch (args[1]) {
-			case "dynamicDat":
+			case "staticdat":
+				if (args.length != 5) {
+					System.out.println("[FAIL] - Bad number of arguments. Try 'help' for more information.");
+					exit(BAD_N_ARGUMENTS);
+				}
+				
+				int N = 0;
+				try {
+					N = Integer.parseInt(args[2]);
+				} catch (NumberFormatException e) {
+					LOGGER.warn("[FAIL] - <N> must be a positive integer. Caused by: ", e);
+					System.out.println("[FAIL] - <N> must be a positive integer. Try 'help' for more information.");
+					exit(BAD_ARGUMENT);
+				}
+				
+				double L = 0;
+				try {
+					L = Double.parseDouble(args[3]);
+				} catch (NumberFormatException e) {
+					LOGGER.warn("[FAIL] - <L> must be a number. Caused by: ", e);
+					System.out.println("[FAIL] - <L> argument must be a number. Try 'help' for more information.");
+					exit(BAD_ARGUMENT);
+				}
+				
+				double r = 0;
+				try {
+					r = Double.parseDouble(args[4]);
+				} catch (NumberFormatException e) {
+					LOGGER.warn("[FAIL] - <r> must be a number. Caused by: ", e);
+					System.out.println("[FAIL] - <r> argument must be a number. Try 'help' for more information.");
+					exit(BAD_ARGUMENT);
+				}
+				// create the points position, given the static.dat file
+				generateStaticDatFile(N, L, r);
+				
+				break;
+			case "dynamicdat":
 				if (args.length != 3) {
 					System.out.println("[FAIL] - Bad number of arguments. Try 'help' for more information.");
 					exit(BAD_N_ARGUMENTS);
@@ -229,6 +266,50 @@ public class Main {
 		}
 	}
 	
+	private static void generateStaticDatFile(final int N, final double L, final double r) {
+		// save data to a new file
+		final File dataFolder = new File(DESTINATION_FOLDER);
+		dataFolder.mkdirs(); // tries to make directories for the .dat files
+
+		/* delete previous dynamic.dat file, if any */
+		final Path pathToDatFile = Paths.get(DESTINATION_FOLDER, "static.dat");
+		
+		if(!deleteIfExists(pathToDatFile)) {
+			return;
+		}
+		
+		/* write the new static.dat file */
+		BufferedWriter writer = null;
+		try {
+			writer = new BufferedWriter(new FileWriter(pathToDatFile.toFile()));
+			writer.write(String.valueOf(N));
+			writer.write("\n");
+			writer.write(String.valueOf(L));
+			writer.write("\n");
+			String radio = String.valueOf(r);
+			for (int i = 0 ; i < N ; i++) {
+				writer.write(radio);
+				writer.write("\n");
+			}
+			
+		} catch (IOException e) {
+			LOGGER.warn("An unexpected IO Exception occurred while writing the file {}. Caused by: ", "output.dat", e);
+			System.out.println("[FAIL] - An unexpected error occurred while writing the file '" + "output.dat" + "'. \n" +
+							"Check the logs for more info.\n" +
+							"Aborting...");
+			exit(UNEXPECTED_ERROR);
+		} finally {
+			try {
+				// close the writer regardless of what happens...
+				if (writer != null) {
+					writer.close();
+				}
+			} catch (Exception ignored) {
+				
+			}
+		}
+	}
+	
 	private static void generateDynamicDatFile(final StaticData staticData) {
 		final PointFactory pF = PointFactory.getInstance();
 		
@@ -236,6 +317,14 @@ public class Main {
 		final Point rightTopPoint = Point.builder(staticData.L, staticData.L).build();
 		
 		final Set<Point> pointsSet = pF.randomPoints(leftBottomPoint, rightTopPoint, staticData.radios, false, 10);
+		
+		if (pointsSet.size() < staticData.radios.length) {
+			System.out.println("[FAIL] - Could not generate all the particles from the static file.\n" +
+							"They where crashing each other when trying to create them at different positions.\n" +
+							"Check that N is not that big for the given L.\n" +
+							"Aborting...");
+			exit(UNEXPECTED_ERROR);
+		}
 		
 		// save data to a new file
 //		final String destinationFolder = "data";
@@ -257,9 +346,11 @@ public class Main {
 			writer = new BufferedWriter(new FileWriter(pathToDatFile.toFile()));
 			writer.write(pointsAsFileFormat);
 		} catch (IOException e) {
-			LOGGER.warn("Could not write 'dynamic.dat' file. Caused by: ", e);
-			System.out.println("An unknown error occurred while writing 'dynamic.dat' file. Aborting...");
-			System.exit(-1); // +++xmagicnumber
+			LOGGER.warn("An unexpected IO Exception occurred while writing the file {}. Caused by: ", "output.dat", e);
+			System.out.println("[FAIL] - An unexpected error occurred while writing the file '" + "dynamic.dat" + "'. \n" +
+							"Check the logs for more info.\n" +
+							"Aborting...");
+			exit(UNEXPECTED_ERROR);
 		} finally {
 			try {
 				// close the writer regardless of what happens...
