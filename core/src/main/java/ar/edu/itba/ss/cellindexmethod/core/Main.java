@@ -1,7 +1,9 @@
 package ar.edu.itba.ss.cellindexmethod.core;
 
+import ar.edu.itba.ss.cellindexmethod.interfaces.CellIndexMethod;
 import ar.edu.itba.ss.cellindexmethod.models.ParticleType;
 import ar.edu.itba.ss.cellindexmethod.models.Point;
+import ar.edu.itba.ss.cellindexmethod.services.CellIndexMethodImpl;
 import ar.edu.itba.ss.cellindexmethod.services.PointFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +25,8 @@ public class Main {
 	
 	private static final String DESTINATION_FOLDER = "data";
 	private static final int FIRST_PARTICLE = 1;
+	private static final int X_INDEX = 0;
+	private static final int Y_INDEX = 1;
 	
 	
 	// Exit Codes
@@ -31,7 +35,10 @@ public class Main {
 		NO_ARGS(-1),
 		NO_FILE(-2),
 		BAD_N_ARGUMENTS(-3),
-		BAD_ARGUMENT(-4);
+		BAD_ARGUMENT(-4),
+		NOT_A_FILE(-5),
+		UNEXPECTED_ERROR(-6),
+		BAD_FILE_FORMAT(-7);
 		
 		private final int code;
 		
@@ -50,15 +57,11 @@ public class Main {
 	
 	/*
 			Options:
-				* generate dynamic dat => gen dynamicdat
-				* run cell index method => cim data/static.dat data/dynamic.dat M rc periodicLimit
-				*                       => cim data/static.dat M rc periodicLimit
-				*
+				* generate dynamic dat => gen dynamicdat data/static.dat
 				* generate ovito => gen ovito <particle_id>
-				
+				* run cell index method => cim data/static.dat data/dynamic.dat M rc periodicLimit
 	 */
 	public static void main(String[] args) {
-		
 		if (args.length == 0) {
 			System.out.println("[FAIL] - No arguments passed. Try 'help' for more information.");
 			exit(NO_ARGS);
@@ -66,68 +69,178 @@ public class Main {
 		
 		switch (args[0]) {
 			case "gen":
-				// another arg is needed
-				if (args.length < 2) {
-					System.out.println("[FAIL] - No file specified. Try 'help' for more information.");
-					exit(NO_FILE);
-				}
-				
-				switch (args[1]) {
-					case "dynamicDat":
-						// read N, L and rs from an input file
-						
-						// if not given, fail and exit
-						
-						// create the points position, given the static.dat file
-						generateDynamicDatFile();
-						break;
-					case "ovito":
-						// get particle id
-						if (args.length != 3) {
-							System.out.println("[FAIL] - Bad number of arguments. Try 'help' for more information.");
-							exit(BAD_N_ARGUMENTS);
-						}
-						
-						try {
-							final int particleId = Integer.parseInt(args[2]);
-							generateOvitoFile(particleId);
-						} catch (NumberFormatException e) {
-							LOGGER.warn("[FAIL] - <particle_id> must be a number. Caused by: ", e);
-							System.out.println("[FAIL] - <particle_id> must be a number. Try 'help' for more information.");
-							exit(BAD_ARGUMENT);
-						}
-						break;
-					
-					default:
-						System.out.println("[FAIL] - Invalid argument. Try 'help' for more information.");
-						exit(BAD_ARGUMENT);
-						break;
-				}
+				generateCase(args);
+				break;
+			case "cim":
+				cellIndexMethod(args);
+				break;
 			default:
 				System.out.println("[FAIL] - Invalid argument. Try 'help' for more information.");
 				exit(BAD_ARGUMENT);
 				break;
 		}
 		
-		
-		
-		
-		// load points from file
+		System.out.println("[DONE]");
 	}
 	
-	private static void generateDynamicDatFile() {
-		// +++xmagicnumber (should be the read ones)
-		final int N = 10;
-		final int L = 20;
-		double[] radios = new double[N];
-		Arrays.fill(radios, 2);
+	
+	private static void cellIndexMethod(final String[] args) {
+		if (args.length != 6) {
+			System.out.println("[FAIL] - Bad number of arguments. Try 'help' for more information.");
+			exit(BAD_N_ARGUMENTS);
+		}
 		
+		// create points' set with static and dynamic files
+		final StaticData staticData = loadStaticFile(args[1]);
+		
+		final Set<Point> points = loadDynamicFile(args[2], staticData);
+		
+		// parse M, rc, and periodicLimit
+		int M = 0;
+		try {
+			M = Integer.parseInt(args[3]);
+		} catch (NumberFormatException e) {
+			LOGGER.warn("[FAIL] - <M> must be an integer. Caused by: ", e);
+			System.out.println("[FAIL] - <M> argument must be an integer. Try 'help' for more information.");
+			exit(BAD_ARGUMENT);
+		}
+		
+		double rc = 0;
+		try {
+			rc = Double.parseDouble(args[4]);
+		} catch (NumberFormatException e) {
+			LOGGER.warn("[FAIL] - <rc> must be a number. Caused by: ", e);
+			System.out.println("[FAIL] - <rc> argument must be a number. Try 'help' for more information.");
+			exit(BAD_ARGUMENT);
+		}
+		
+		boolean periodicLimit = false;
+		try {
+			periodicLimit = Boolean.parseBoolean(args[5]);
+		} catch (NumberFormatException e) {
+			LOGGER.warn("[FAIL] - <periodicLimit> must be a boolean. Caused by: ", e);
+			System.out.println("[FAIL] - <periodicLimit> argument must be a boolean. Try 'help' for more information.");
+			exit(BAD_ARGUMENT);
+		}
+		
+		// run cell index method
+		final long startTime = System.nanoTime();
+		final CellIndexMethod cim = new CellIndexMethodImpl();
+		final Map<Point, Set<Point>> pointsWithNeighbours = cim.run(points, staticData.L, M, rc, periodicLimit);
+		final long endTime = System.nanoTime();
+		
+		final long deltaTime = endTime - startTime;
+		
+		
+		// write pointsWithNeighbours to a file called "output.dat"
+		generateOutputDatFile(pointsWithNeighbours, deltaTime);
+	}
+	
+	private static void generateOutputDatFile(final Map<Point, Set<Point>> pointsWithNeighbours, final long deltaTime) {
+		
+		// save data to a new file
+//		final String destinationFolder = "data";
+		final File dataFolder = new File(DESTINATION_FOLDER);
+		dataFolder.mkdirs(); // tries to make directories for the .dat files
+
+		/* delete previous dynamic.dat file, if any */
+		final Path pathToDatFile = Paths.get(DESTINATION_FOLDER, "output.dat");
+		
+		if(!deleteIfExists(pathToDatFile)) {
+			return;
+		}
+
+		/* write the new output.dat file */
+		final String data = pointsToString(pointsWithNeighbours);
+		
+		BufferedWriter writer = null;
+		try {
+			writer = new BufferedWriter(new FileWriter(pathToDatFile.toFile()));
+			writer.write(String.valueOf(deltaTime)); // nano seconds of execution
+			writer.write(data); // list of neighbours per point
+			
+		} catch (IOException e) {
+			LOGGER.warn("An unexpected IO Exception occurred while writing the file {}. Caused by: ", "output.dat", e);
+			System.out.println("[FAIL] - An unexpected error occurred while writing the file '" + "output.dat" + "'. \n" +
+							"Check the logs for more info.\n" +
+							"Aborting...");
+			exit(UNEXPECTED_ERROR);
+		} finally {
+			try {
+				// close the writer regardless of what happens...
+				if (writer != null) {
+					writer.close();
+				}
+			} catch (Exception ignored) {
+				
+			}
+		}
+	}
+	
+	private static String pointsToString(final Map<Point, Set<Point>> pointsWithNeighbours) {
+		final StringBuilder sb = new StringBuilder();
+		pointsWithNeighbours.forEach((point, neighbours) -> {
+			sb.append(point.id());
+			neighbours.forEach(neighbour -> {
+				sb.append('\t').append(neighbour.id());
+			});
+			sb.append('\n');
+		});
+		return sb.toString();
+	}
+	
+	private static void generateCase(final String[] args) {
+		// another arg is needed
+		if (args.length < 2) {
+			System.out.println("[FAIL] - No file specified. Try 'help' for more information.");
+			exit(NO_FILE);
+		}
+		
+		switch (args[1]) {
+			case "dynamicDat":
+				if (args.length != 3) {
+					System.out.println("[FAIL] - Bad number of arguments. Try 'help' for more information.");
+					exit(BAD_N_ARGUMENTS);
+				}
+				
+				// read N, L and rs from an input file
+				final StaticData staticData = loadStaticFile(args[2]);
+				
+				// create the points position, given the static.dat file
+				generateDynamicDatFile(staticData);
+				break;
+			
+			case "ovito":
+				// get particle id
+				if (args.length != 3) {
+					System.out.println("[FAIL] - Bad number of arguments. Try 'help' for more information.");
+					exit(BAD_N_ARGUMENTS);
+				}
+				
+				try {
+					final int particleId = Integer.parseInt(args[2]);
+					generateOvitoFile(particleId);
+				} catch (NumberFormatException e) {
+					LOGGER.warn("[FAIL] - <particle_id> must be a number. Caused by: ", e);
+					System.out.println("[FAIL] - <particle_id> must be a number. Try 'help' for more information.");
+					exit(BAD_ARGUMENT);
+				}
+				break;
+			
+			default:
+				System.out.println("[FAIL] - Invalid argument. Try 'help' for more information.");
+				exit(BAD_ARGUMENT);
+				break;
+		}
+	}
+	
+	private static void generateDynamicDatFile(final StaticData staticData) {
 		final PointFactory pF = PointFactory.getInstance();
 		
 		final Point leftBottomPoint = Point.builder(0, 0).build();
-		final Point rightTopPoint = Point.builder(L, L).build();
+		final Point rightTopPoint = Point.builder(staticData.L, staticData.L).build();
 		
-		final Set<Point> pointsSet = pF.randomPoints(leftBottomPoint, rightTopPoint, radios, false, 10);
+		final Set<Point> pointsSet = pF.randomPoints(leftBottomPoint, rightTopPoint, staticData.radios, false, 10);
 		
 		// save data to a new file
 //		final String destinationFolder = "data";
@@ -142,7 +255,7 @@ public class Main {
 		}
 
 		/* write the new dynamic.dat file */
-		final String pointsAsFileFormat = pointsSetToString(N, L, pointsSet);
+		final String pointsAsFileFormat = pointsToString(pointsSet);
 		
 		BufferedWriter writer = null;
 		try {
@@ -164,10 +277,10 @@ public class Main {
 		}
 	}
 	
-	private static String pointsSetToString(final int N, final int L, final Set<Point> pointsSet) {
+	private static String pointsToString(final Set<Point> pointsSet) {
 		final StringBuffer sb = new StringBuffer();
 		sb.append("t0").append('\n');
-		pointsSet.forEach(point -> sb.append(point.x()).append(' ').append(point.y()).append('\n'));
+		pointsSet.forEach(point -> sb.append(point.x()).append('\t').append(point.y()).append('\n'));
 		return sb.toString();
 	}
 	
@@ -292,6 +405,12 @@ public class Main {
 		
 		try (final Stream<String> outputDatStream = Files.lines(pathToOutputDatFile)) {
 			final Iterator outputDatIterator = outputDatStream.iterator();
+			
+			// skip time of execution
+			if (outputDatIterator.hasNext()) {
+				outputDatIterator.next();
+			}
+			
 			final Collection<Integer> neighbours = new LinkedList<>();
 			String potentialNeighbours;
 			
@@ -328,5 +447,120 @@ public class Main {
 			return false;
 		}
 		return true;
+	}
+	
+	/* ------------------------------- */
+	private static class StaticData {
+		private int N;
+		private double L;
+		private double[] radios;
+	}
+	
+	private static StaticData loadStaticFile(final String filePath) {
+		final StaticData staticData = new StaticData();
+		
+		
+		final File staticFile = new File(filePath);
+		if (!staticFile.isFile()) {
+			System.out.println("[FAIL] - File '" + filePath + "' is not a normal file. Aborting...");
+			exit(NOT_A_FILE);
+		}
+		
+		try (final Stream<String> staticStream = Files.lines(staticFile.toPath())) {
+			final Iterator<String> staticFileLines = staticStream.iterator();
+			
+			// get N
+			staticData.N = Integer.valueOf(staticFileLines.next());
+			
+			// get L
+			staticData.L = Double.valueOf(staticFileLines.next());
+			
+			staticData.radios = new double[staticData.N];
+			String cLine;
+			double cRadio;
+			for (int i = 0 ; i < staticData.N ; i++) {
+				cLine = staticFileLines.next(); // caught runtime exception
+				cRadio = Double.valueOf(cLine.split("\t")[0]); // at least it should have one component
+				staticData.radios[i] = cRadio;
+			}
+			
+		} catch (final IOException e) {
+			LOGGER.warn("An unexpected IO Exception occurred while reading the file {}. Caused by: ", staticFile, e);
+			System.out.println("[FAIL] - An unexpected error occurred while reading the file '" + staticFile + "'. \n" +
+							"Check the logs for more info.\n" +
+							"Aborting...");
+			exit(UNEXPECTED_ERROR);
+		} catch (final NumberFormatException e) {
+			LOGGER.warn("[FAIL] - Number expected. Caused by: ", e);
+			System.out.println("[FAIL] - Bad format of file '" + staticFile + "'.\n" +
+							"Check the logs for more info.\n" +
+							"Aborting...");
+			exit(BAD_FILE_FORMAT);
+		} catch (final NoSuchElementException e) {
+			LOGGER.warn("[FAIL] - Particle Expected. Caused by: ", e);
+			System.out.println("[FAIL] - Bad format of file '" + staticFile + "'.\n" +
+							"Particle information expected: N is greater than the # of lines with particle information.\n" +
+							"Check the logs for more info.\n" +
+							"Aborting...");
+			exit(BAD_FILE_FORMAT);
+		}
+		
+		return staticData;
+	}
+	
+	private static Set<Point> loadDynamicFile(final String fileName, final StaticData staticData) {
+		final File dynamicFile = new File(fileName);
+		if (!dynamicFile.isFile()) {
+			System.out.println("[FAIL] - File '" + fileName + "' is not a normal file. Aborting...");
+			exit(NOT_A_FILE);
+		}
+		
+		
+		final Set<Point> points = new HashSet<>(staticData.radios.length);
+		
+		try (final Stream<String> dynamicStream = Files.lines(dynamicFile.toPath())) {
+			final Iterator<String> dynamicFileLines = dynamicStream.iterator();
+			
+			// skip time t0
+			dynamicFileLines.next();
+			
+			String[] cLineArgs;
+			double x, y;
+			for (int i = 0 ; i < staticData.radios.length ; i++) {
+				cLineArgs = dynamicFileLines.next().split("\t");
+				x = Double.valueOf(cLineArgs[X_INDEX]); // caught IndexOutOfBounds
+				y = Double.valueOf(cLineArgs[Y_INDEX]); // caught IndexOutOfBounds
+				points.add(Point.builder(x,y).radio(staticData.radios[i]).build());
+			}
+			
+		} catch (IOException e) {
+			LOGGER.warn("An unexpected IO Exception occurred while reading the file {}. Caused by: ", dynamicFile, e);
+			System.out.println("[FAIL] - An unexpected error occurred while reading the file '" + dynamicFile + "'. \n" +
+							"Check the logs for more info.\n" +
+							"Aborting...");
+			exit(UNEXPECTED_ERROR);
+		} catch (final NumberFormatException e) {
+			LOGGER.warn("[FAIL] - Number expected. Caused by: ", e);
+			System.out.println("[FAIL] - Bad format of file '" + dynamicFile + "'.\n" +
+							"Check the logs for more info.\n" +
+							"Aborting...");
+			exit(BAD_FILE_FORMAT);
+		} catch (final NoSuchElementException e) {
+			LOGGER.warn("[FAIL] - Particle Expected. Caused by: ", e);
+			System.out.println("[FAIL] - Bad format of file '" + dynamicFile + "'.\n" +
+							"Particle information expected: N is greater than the # of lines with particle information.\n" +
+							"Check the logs for more info.\n" +
+							"Aborting...");
+			exit(BAD_FILE_FORMAT);
+		} catch (final IndexOutOfBoundsException e) {
+			LOGGER.warn("[FAIL] - Particle Information Missing. Caused by: ", e);
+			System.out.println("[FAIL] - Bad format of file '" + dynamicFile + "'.\n" +
+							"Particle information missing: x or y position is missing.\n" +
+							"Check the logs for more info.\n" +
+							"Aborting...");
+			exit(BAD_FILE_FORMAT);
+		}
+		
+		return points;
 	}
 }
