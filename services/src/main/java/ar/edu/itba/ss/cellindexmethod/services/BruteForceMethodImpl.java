@@ -8,7 +8,7 @@ import java.util.*;
 public class BruteForceMethodImpl implements BruteForceMethod{
 
     @Override
-    public Map<Point, Set<Point>> run(final Set<Point> points, final double rc,
+    public Map<Point, Set<Point>> run(final Set<Point> points, final double L, final double rc,
                                       final boolean periodicLimit) {
 
         final List<Point> pointsAsList = new ArrayList<>(points);

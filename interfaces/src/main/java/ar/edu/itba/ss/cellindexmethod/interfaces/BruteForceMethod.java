@@ -16,5 +16,5 @@ public interface BruteForceMethod {
      * @return a map containing as key each of the points of the set, and a list of the points with the ones
      * each point collides; if condition L/M > rc + r1 + r2 is not met, null is returned
      */
-    Map<Point, Set<Point>> run(Set<Point> points, double rc, boolean periodicLimit);
+    Map<Point, Set<Point>> run(Set<Point> points, double L, double rc, boolean periodicLimit);
 }
