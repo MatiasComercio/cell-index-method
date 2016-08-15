@@ -150,4 +150,5 @@ gradle-app.setting
 
 # Own
 logs/
+output/
 
