@@ -7,10 +7,9 @@ import java.util.*;
 
 public class BruteForceMethodImpl implements BruteForceMethod{
 
-    //TODO: Check if points in the given set are not colliding (distance <0) && check rc>=0
-    // && check given set != null
     @Override
-    public Map<Point, Set<Point>> run(Set<Point> points, double rc, boolean periodicLimit) {
+    public Map<Point, Set<Point>> run(final Set<Point> points, final double rc,
+                                      final boolean periodicLimit) {
 
         final List<Point> pointsAsList = new ArrayList<>(points);
         final Map<Point, Set<Point>> collisionPerPoint = new HashMap<>(points.size());
@@ -27,8 +26,8 @@ public class BruteForceMethodImpl implements BruteForceMethod{
         return collisionPerPoint;
     }
 
-    private void calculateCollisions(Map<Point, Set<Point>> collisionPerPoint,
-                                     List<Point> pointsAsList, double rc) {
+    private void calculateCollisions(final Map<Point, Set<Point>> collisionPerPoint,
+                                     final List<Point> pointsAsList, final double rc) {
         double distance;
 
         for(int i=0; i<pointsAsList.size(); i++){
