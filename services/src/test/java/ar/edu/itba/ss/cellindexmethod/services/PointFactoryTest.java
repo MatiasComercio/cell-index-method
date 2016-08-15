@@ -6,7 +6,7 @@ import org.junit.Test;
 import java.util.Set;
 
 public class PointFactoryTest {
-	/* trivial test - have to ximprove */
+	/* trivial repetition test */
 	
 	@Test
 	public void testRandomPoints() {

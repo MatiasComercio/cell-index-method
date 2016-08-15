@@ -412,11 +412,11 @@ public class Main {
 			staticDatStream = Files.lines(pathToStaticDatFile);
 			dynamicDatStream = Files.lines(pathToDynamicDatFile);
 		} catch (IOException e) {
-			LOGGER.warn("Could not read file. Caused by: ", e); // +++ximprove
-			System.out.println("Could not read  one of these files: 'static.dat' | 'dynamic.dat'.\n" +
+			LOGGER.warn("Could not read a file. Details: ", e);
+			System.out.println("Could not read one of these files: 'static.dat' or 'dynamic.dat'.\n" +
 							"Check the logs for a detailed info.\n" +
 							"Aborting...");
-			System.exit(-1); // +++xmagicnumber
+			exit(UNEXPECTED_ERROR);
 		}
 		
 		BufferedWriter writer = null;
@@ -530,7 +530,10 @@ public class Main {
 			}
 		} catch (IOException e) {
 			LOGGER.warn("Could not get stream for 'output.dat' file. Caused by: ", e);
-			System.exit(-1); // +++xmagicnumber
+			System.out.println("An unexpected error was encounter while reading '" + "output.dat" + "' file.\n" +
+							"Check the logs for more info.\n" +
+							"Aborting...");
+			exit(UNEXPECTED_ERROR);
 		}
 		return null;
 	}
