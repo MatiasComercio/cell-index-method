@@ -53,7 +53,9 @@ public class Main {
 									"<particle_id> : \n"+
 									"\t generates an output/graphics.xyz file (for Ovito) with the result of the cell index\n " +
 									"\t method (<output.dat>) generated with the other two files.\n" +
-									"\t <particle_id> is the id of the particle whose collision particles wants to be known.";
+									"\t <particle_id> is the id of the particle whose collision particles wants to be known.\n" +
+									"* force <path/to/static.dat> <path/to/dynamic.dat> <rc> <periodicLimit> :\n" +
+									"\t runs the brute force method, using information provided by both files.\n";
 	
 	// Exit Codes
 	enum EXIT_CODE {
