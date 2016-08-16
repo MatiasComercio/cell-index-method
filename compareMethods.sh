@@ -7,6 +7,10 @@ OUTPUT_DATA_PATH=$PROJECT/data/statistics
 
 mValues=( 4 6 8 10 12 13)
 
+minN=10
+stepN=10
+maxN=100
+
 r=0.25
 rc=1
 L=20
@@ -24,7 +28,8 @@ rm $OUTPUT_DATA_PATH/*.dat
 
 cd $PROJECT
 
-for N in `seq 10 10 100` ; do
+#for N in `seq 10 10 100` ; do
+for N in `seq $minN $stepN $maxN` ; do
 
     $SIMULATION gen staticdat $N $L $r
     $SIMULATION gen dynamicdat output/static.dat
@@ -80,7 +85,7 @@ for M in "${mValues[@]}" ; do
     #touch $CELL_OUT
     #for i in $(ls | grep cell-*.-$M.dat) ; do
     
-    for N in `seq 10 10 100` ; do
+    for N in `seq $minN $stepN $maxN` ; do
         
         #COLUMN_TIME="`head -n 1 cell-N$N-M$M.dat`"
         echo -n "$N " >> $OUT_FILE
