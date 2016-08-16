@@ -2,7 +2,7 @@
 
 SIMULATION="java -jar core/target/core-1.0-SNAPSHOT-jar-with-dependencies.jar"
 
-PROJECT=$HOME/ideaProjects/cell-index-method
+PROJECT=$HOME/Programs/idea_workspace/cell-index-method
 OUTPUT_DATA_PATH=$PROJECT/data/statistics
 
 mValues=( 4 6 8 10 12 13)
@@ -30,14 +30,17 @@ for N in `seq 10 10 100` ; do
     $SIMULATION gen dynamicdat output/static.dat
 
     for M in "${mValues[@]}" ; do
-        
+       
+	    #echo "$SIMULATION cim output/static.dat output/dynamic.dat $M $rc false"	
         $SIMULATION cim output/static.dat output/dynamic.dat $M $rc false
         mv output/output.dat $OUTPUT_DATA_PATH/cell-N$N-M$M.dat 
 
+        #echo "$SIMULATION cim output/static.dat output/dynamic.dat $M $rc true"
         $SIMULATION cim output/static.dat output/dynamic.dat $M $rc true
         mv output/output.dat $OUTPUT_DATA_PATH/cellPeriodic-N$N-M$M.dat
 
         #TODO: Add an entry in main for BruteForceMethod and calculate time
+        #echo "$SIMULATION force output/static.dat output/dynamic.dat $rc false"
         $SIMULATION force output/static.dat output/dynamic.dat $rc false
         mv output/output.dat $OUTPUT_DATA_PATH/force-N$N-M$M.dat
 
