@@ -47,17 +47,18 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		final SquareMatrix cellMatrix = new SquareMatrix(M);
 		
 		final Map<Point, Set<Point>> collisionPerPoint = new HashMap<>(points.size());
-		
+		final Set<Cell> nonEmptyCells = new HashSet<>();
 		points.forEach(point -> {
 			// add the point to the map to be returned, with a new empty set
 			collisionPerPoint.put(point, new HashSet<>());
 			
 			// put each point on the corresponding cell of the cell's matrix
-			saveToMatrix(L, M, point, cellMatrix);
+			// save the cell as a non empty one, to analyse it later
+			nonEmptyCells.add(saveToMatrix(L, M, point, cellMatrix));
 		});
 		
 		// run the cell index method itself
-		run(L, cellMatrix, rc, periodicLimit, collisionPerPoint);
+		run(L, nonEmptyCells, cellMatrix, rc, periodicLimit, collisionPerPoint);
 		
 		// return the created map with each point information
 		return collisionPerPoint;
@@ -90,7 +91,7 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		return true;
 	}
 	
-	private void run(final double L, final SquareMatrix cellMatrix, final double rc,
+	private void run(final double L, final Set<Cell> nonEmptyCells, final SquareMatrix cellMatrix, final double rc,
 	                 final boolean periodicLimit, final Map<Point, Set<Point>> collisionPerPoint) {
 		/*
 			Takes one cell at a time and applies the patter saw in class to take advantage of the symmetry of the
@@ -117,53 +118,56 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		 */
 		
 		final int M = cellMatrix.dimension();
-		boolean virtualPointNeeded;
-		double xOffset, yOffset;
-		int oRow, oCol;
-		Cell cCell, oCell;
-		for (int row = 0 ; row < M ; row ++) {
-			for (int col = 0 ; col < M ; col ++) {
-				cCell = cellMatrix.get(row, col); // get current cell
-				for (final int[] neighbourDirection : neighbourDirections) { // travel getting different neighbours
-					virtualPointNeeded = false;
-					xOffset = 0;
-					yOffset = 0;
-					
-					// get the other cell's row & col
-					oRow = row + neighbourDirection[ROW];
-					oCol = col + neighbourDirection[COL];
-					
-					// adapt to periodicLimit condition
-					if (!periodicLimit) {
-						if (oRow < 0 || oRow == M || oCol == M) {
-							continue; // do not consider this cell, because it does not exists
-						}
-					} else {
-						if (oRow < 0) {
-							oRow = M - 1;
-							virtualPointNeeded = true;
-							yOffset = L;
-						}
-						if (oRow == M) {
-							oRow = 0;
-							virtualPointNeeded = true;
-							yOffset = -L;
-						}
-						if (oCol == M) {
-							oCol = 0;
-							virtualPointNeeded = true;
-							xOffset = L;
-						}
+		nonEmptyCells.forEach(cCell -> {
+			boolean virtualPointNeeded;
+			double xOffset, yOffset;
+			int row, col, oRow, oCol;
+			Cell oCell;
+			for (final int[] neighbourDirection : neighbourDirections) { // travel getting different neighbours
+				virtualPointNeeded = false;
+				xOffset = 0;
+				yOffset = 0;
+				
+				// get current cell's row & col
+				row = cCell.row;
+				col = cCell.col;
+				
+				// get the other cell's row & col
+				oRow = row + neighbourDirection[ROW];
+				oCol = col + neighbourDirection[COL];
+				
+				// adapt to periodicLimit condition
+				if (!periodicLimit) {
+					if (oRow < 0 || oRow == M || oCol == M) {
+						continue; // do not consider this cell, because it does not exists
 					}
-					
-					oCell = cellMatrix.get(oRow, oCol);
-					
+				} else {
+					if (oRow < 0) {
+						oRow = M - 1;
+						virtualPointNeeded = true;
+						yOffset = L;
+					}
+					if (oRow == M) {
+						oRow = 0;
+						virtualPointNeeded = true;
+						yOffset = -L;
+					}
+					if (oCol == M) {
+						oCol = 0;
+						virtualPointNeeded = true;
+						xOffset = L;
+					}
+				}
+				
+				oCell = cellMatrix.get(oRow, oCol);
+				
+				if (nonEmptyCells.contains(oCell)) { // so as not to create overhead; if empty => no necessary to process
 					// check the distance between each pair of points on the current pair of cells,
 					// and add the necessary mappings, if two points collide
 					checkCollisions(cCell, oCell, rc, collisionPerPoint, virtualPointNeeded, xOffset, yOffset);
 				}
 			}
-		}
+		});
 	}
 	
 	/**
@@ -203,8 +207,15 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		}));
 	}
 	
-	
-	private void saveToMatrix(final double mapSideLength, final int nCells,
+	/**
+	 *
+	 * @param mapSideLength
+	 * @param nCells
+	 * @param point
+	 * @param cellMatrix
+	 * @return cell where the given point was saved at the given SquareMatrix
+	 */
+	private Cell saveToMatrix(final double mapSideLength, final int nCells,
 	                          final Point point, final SquareMatrix cellMatrix) {
 		/*
 				Each point has an x & y component.
@@ -258,7 +269,7 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		col = getT(k, point.x());
 		
 		// if row or col is out of bounds => bad input was given ( x < 0 || x >= L || y < 0 || y >= L )
-		cellMatrix.addToCell(row, col, point);
+		return cellMatrix.addToCell(row, col, point);
 	}
 	
 	/**
@@ -275,10 +286,14 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 	
 	
 	private static class Cell {
-		private final Set<Point> points;
+		private final List<Point> points;
+		private final int row;
+		private final int col;
 		
-		private Cell() {
-			this.points = new HashSet<>();
+		private Cell(final int row, final int col) {
+			this.points = new LinkedList<>();
+			this.row = row;
+			this.col = col;
 		}
 		
 	}
@@ -290,11 +305,10 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 			this.matrix = new Cell[dimension][dimension];
 			for (int row = 0 ; row < dimension ; row ++) {
 				for (int col = 0 ; col < dimension ; col ++) {
-					matrix[row][col] = new Cell();
+					matrix[row][col] = new Cell(row, col);
 				}
 			}
 		}
-		
 		
 		/**
 		 *
@@ -313,12 +327,14 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		 * @param row row index
 		 * @param col col index
 		 * @param p point to be added to the cell specified by the given row and call
-		 * @return true if the point could be added; false otherwise
+		 * @return the Cell where the point was added
 		 *
 		 * @throws IndexOutOfBoundsException if row or col is lower than 0 or equal or greater than matrix's dimension
 		 */
-		private boolean addToCell(final int row, final int col, final Point p) {
-			return get(row, col).points.add(p);
+		private Cell addToCell(final int row, final int col, final Point p) {
+			final Cell c = get(row, col);
+			c.points.add(p);
+			return c;
 		}
 		
 		private int dimension() {
