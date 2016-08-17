@@ -1,8 +1,10 @@
 package ar.edu.itba.ss.cellindexmethod.core;
 
+import ar.edu.itba.ss.cellindexmethod.interfaces.BruteForceMethod;
 import ar.edu.itba.ss.cellindexmethod.interfaces.CellIndexMethod;
 import ar.edu.itba.ss.cellindexmethod.models.ParticleType;
 import ar.edu.itba.ss.cellindexmethod.models.Point;
+import ar.edu.itba.ss.cellindexmethod.services.BruteForceMethodImpl;
 import ar.edu.itba.ss.cellindexmethod.services.CellIndexMethodImpl;
 import ar.edu.itba.ss.cellindexmethod.services.PointFactory;
 import org.slf4j.Logger;
@@ -51,7 +53,9 @@ public class Main {
 									"<particle_id> : \n"+
 									"\t generates an output/graphics.xyz file (for Ovito) with the result of the cell index\n " +
 									"\t method (<output.dat>) generated with the other two files.\n" +
-									"\t <particle_id> is the id of the particle whose collision particles wants to be known.";
+									"\t <particle_id> is the id of the particle whose collision particles wants to be known.\n" +
+									"* force <path/to/static.dat> <path/to/dynamic.dat> <rc> <periodicLimit> :\n" +
+									"\t runs the brute force method, using information provided by both files.\n";
 	
 	// Exit Codes
 	enum EXIT_CODE {
@@ -100,6 +104,9 @@ public class Main {
 				break;
 			case "cim":
 				cellIndexMethod(args);
+				break;
+			case "force":
+				bruteForceMethod(args);
 				break;
 			default:
 				System.out.println("[FAIL] - Invalid argument. Try 'help' for more information.");
@@ -179,9 +186,58 @@ public class Main {
 		// write pointsWithNeighbours to a file called "output.dat"
 		generateOutputDatFile(pointsWithNeighbours, deltaTime);
 	}
+
+	private static void bruteForceMethod(final String[] args) {
+		if (args.length != 5) {
+			System.out.println("[FAIL] - Bad number of arguments. Try 'help' for more information.");
+			exit(BAD_N_ARGUMENTS);
+		}
+		//force output/static.dat output/dynamic.dat $rc false
+		// create points' set with static and dynamic files
+		final StaticData staticData = loadStaticFile(args[1]);
+
+		final Set<Point> points = loadDynamicFile(args[2], staticData);
+
+		// parse rc, and periodicLimit
+		double rc = 0;
+		try {
+			rc = Double.parseDouble(args[3]);
+		} catch (NumberFormatException e) {
+			LOGGER.warn("[FAIL] - <rc> must be a number. Caused by: ", e);
+			System.out.println("[FAIL] - <rc> argument must be a number. Try 'help' for more information.");
+			exit(BAD_ARGUMENT);
+		}
+
+		boolean periodicLimit = false;
+		try {
+			periodicLimit = Boolean.parseBoolean(args[4]);
+		} catch (NumberFormatException e) {
+			LOGGER.warn("[FAIL] - <periodicLimit> must be a boolean. Caused by: ", e);
+			System.out.println("[FAIL] - <periodicLimit> argument must be a boolean. Try 'help' for more information.");
+			exit(BAD_ARGUMENT);
+		}
+
+		if (rc < 0 || staticData.L <= 0) {
+			System.out.println("[FAIL] - The following must not happen: rc < 0 or L <= 0.\n" +
+					"Please check the input files.");
+			exit(BAD_ARGUMENT);
+		}
+
+		// run brute force method
+		final long startTime = System.nanoTime();
+
+		final BruteForceMethod forceMethod = new BruteForceMethodImpl();
+		final Map<Point, Set<Point>> pointsWithNeighbours = forceMethod.run(points, staticData.L, rc, periodicLimit);
+
+		final long endTime = System.nanoTime();
+
+		final long deltaTime = endTime - startTime;
+
+		// write pointsWithNeighbours to a file called "output.dat"
+		generateOutputDatFile(pointsWithNeighbours, deltaTime);
+	}
 	
 	private static void generateOutputDatFile(final Map<Point, Set<Point>> pointsWithNeighbours, final long deltaTime) {
-		
 		// save data to a new file
 //		final String destinationFolder = "data";
 		final File dataFolder = new File(DESTINATION_FOLDER);
