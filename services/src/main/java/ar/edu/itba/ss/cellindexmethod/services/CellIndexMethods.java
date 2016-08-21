@@ -2,6 +2,8 @@ package ar.edu.itba.ss.cellindexmethod.services;
 
 import ar.edu.itba.ss.cellindexmethod.models.Point;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,5 +23,32 @@ public abstract class CellIndexMethods {
 			return true;
 		}
 		return false;
+	}
+	
+	/**
+	 * Checks that the condition L/M > rc + r1 + r2 is met for each pair of points at the given set.
+	 *
+	 * @param l L
+	 * @param m M
+	 * @param rc rc
+	 * @param points set containing all the points
+	 * @return true if condition is met for every pair of points; false otherwise
+	 */
+	public static boolean mConditionIsMet(final double l, final int m,
+	                                       final double rc, final Set<Point> points) {
+		final List<Point> pointsAsList = new ArrayList<>(points);
+		
+		double r1, r2;
+		for (int i = 0 ; i < pointsAsList.size() ; i++) {
+			for (int j = i + 1 ; j < pointsAsList.size() ; j++) {
+				r1 = pointsAsList.get(i).radio();
+				r2 = pointsAsList.get(j).radio();
+				if (l/m <= rc + r1 + r2) {
+					return false;
+				}
+			}
+		}
+		
+		return true;
 	}
 }

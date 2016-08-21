@@ -6,6 +6,7 @@ import ar.edu.itba.ss.cellindexmethod.models.ParticleType;
 import ar.edu.itba.ss.cellindexmethod.models.Point;
 import ar.edu.itba.ss.cellindexmethod.services.BruteForceMethodImpl;
 import ar.edu.itba.ss.cellindexmethod.services.CellIndexMethodImpl;
+import ar.edu.itba.ss.cellindexmethod.services.CellIndexMethods;
 import ar.edu.itba.ss.cellindexmethod.services.PointFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,6 +168,13 @@ public class Main {
 			exit(BAD_ARGUMENT);
 		}
 		
+		// check the condition L/M > rc + r1 + r2
+		if (!CellIndexMethods.mConditionIsMet(staticData.L,M,rc,points)) {
+			System.out.println("[FAIL] -  the condition L/M > rc + r1 + r2 is met for each pair of points.\n" +
+							"Please check the input files.");
+			exit(BAD_ARGUMENT);
+		}
+		
 		// run cell index method
 		final CellIndexMethod cim = new CellIndexMethodImpl();
 		final long startTime = System.currentTimeMillis();
@@ -185,7 +193,7 @@ public class Main {
 		// write pointsWithNeighbours to a file called "output.dat"
 		generateOutputDatFile(pointsWithNeighbours, deltaTime);
 	}
-
+	
 	private static void bruteForceMethod(final String[] args) {
 		if (args.length != 5) {
 			System.out.println("[FAIL] - Bad number of arguments. Try 'help' for more information.");

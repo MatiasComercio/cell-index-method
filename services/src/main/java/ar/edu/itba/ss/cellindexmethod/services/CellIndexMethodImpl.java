@@ -42,12 +42,6 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 			throw new IllegalArgumentException("Check that this is happening, but must not: M <= 0 or rc < 0 or L <= 0");
 		}
 		
-		// +++xchange: move to another place
-		// +++xdocument: not going to check this inside this method
-//		if (!mConditionIsMet(L,M,rc,points)) {
-//			return null;
-//		}
-		
 		// create the square cell matrix
 		final SquareMatrix cellMatrix = new SquareMatrix(M);
 		
@@ -68,33 +62,6 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		
 		// return the created map with each point information
 		return collisionPerPoint;
-	}
-	
-	/**
-	 * Checks that the condition L/M > rc + r1 + r2 is met for each pair of points at the given set.
-	 *
-	 * @param l L
-	 * @param m M
-	 * @param rc rc
-	 * @param points set containing all the points
-	 * @return true if condition is met for every pair of points; false otherwise
-	 */
-	private boolean mConditionIsMet(final double l, final int m,
-	                                final double rc, final Set<Point> points) {
-		final List<Point> pointsAsList = new ArrayList<>(points);
-		
-		double r1, r2;
-		for (int i = 0 ; i < pointsAsList.size() ; i++) {
-			for (int j = i + 1 ; j < pointsAsList.size() ; j++) {
-				r1 = pointsAsList.get(i).radio();
-				r2 = pointsAsList.get(j).radio();
-				if (l/m <= rc + r1 + r2) {
-					return false;
-				}
-			}
-		}
-		
-		return true;
 	}
 	
 	private void run(final double L, final Set<Cell> nonEmptyCells, final SquareMatrix cellMatrix, final double rc,
