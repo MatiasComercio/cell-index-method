@@ -20,9 +20,10 @@
 PARAMS_REQUIRED=8
 
 # Paths to prerequired files
-RELATIVE_PROJECT_FOLDER="."
+PROJECT_FOLDER="$HOME/Programs/idea_workspace/cell-index-method"
+RELATIVE_BIN_FOLDER="$PROJECT_FOLDER/resources/bin"
 
-OUTPUT_FOLDER="$RELATIVE_PROJECT_FOLDER/output"
+OUTPUT_FOLDER="$RELATIVE_BIN_FOLDER/output"
 STATIC_PATH="$OUTPUT_FOLDER/static.dat"
 DYNAMIC_PATH="$OUTPUT_FOLDER/dynamic.dat"
 SIM_OUTPUT_PATH="$OUTPUT_FOLDER/output.dat"
@@ -35,7 +36,7 @@ OUTPUT_PB_PATH="$OUTPUT_FOLDER/optimum_graph_pb_"
 # Extension of the output table
 OUTPUT_TABLE_TYPE=".csv"
 
-JAR="java -jar $RELATIVE_PROJECT_FOLDER/core/target/core-1.0-SNAPSHOT-jar-with-dependencies.jar"
+JAR="java -jar $PROJECT_FOLDER/core/target/core-1.0-SNAPSHOT-jar-with-dependencies.jar"
 
 function validate_exit_status {
     if [ $? -ne 0 ]
@@ -54,7 +55,6 @@ function gen_staticdat {
 
 function gen_dynamicdat {
     ${JAR} gen dynamicdat ${STATIC_PATH} >> ${SCRIPT_LOGGER} 2>&1
-    mv ${DYNAMIC_PATH} "${DYNAMIC_PATH}.${1}"
 }
 
 function cim_call {
@@ -112,6 +112,8 @@ M_MAX=$6
 PERIODIC_BOUNDS=$7
 REPEAT=$8
 
+mkdir -p $OUTPUT_FOLDER
+
 echo -ne "Generating static.dat file... "
 gen_staticdat ${N} ${L} ${R}
 validate_exit_status
@@ -120,9 +122,10 @@ echo "Generating dynamic.dat files for each iteration..."
 for i in `seq 1 ${REPEAT}`; do
     PERCENTAGE_COMPLETED=$(bc <<< "scale=2;$i/$REPEAT * 100")
     echo -ne "\t\tCompleted...$PERCENTAGE_COMPLETED%\r" # A % completed value
-	gen_dynamicdat $i
+	gen_dynamicdat
 	echo -ne "\t"
 	validate_exit_status
+	mv ${DYNAMIC_PATH} "${DYNAMIC_PATH}.${i}"
 done
 echo -e "[DONE]\n"
 
@@ -171,3 +174,8 @@ validate_exit_status
 
 TIME=`head -n 1 ${SIM_OUTPUT_PATH}`
 echo ${TIME}$'\r' >> ${OUTPUT_TABLE_PATH}
+
+mkdir -p $PROJECT_FOLDER/output
+mv $OUTPUT_FOLDER/* $PROJECT_FOLDER/output
+rm -r $OUTPUT_FOLDER
+
