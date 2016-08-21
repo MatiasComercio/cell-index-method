@@ -38,19 +38,20 @@ JAR="java -jar $RELATIVE_PROJECT_FOLDER/core/target/core-1.0-SNAPSHOT-jar-with-d
 
 # Generate static file
 function gen_staticdat {
-    ${JAR} gen staticdat ${1} ${2} ${3} > /dev/null
+    ${JAR} gen staticdat ${1} ${2} ${3}
 }
 
 function gen_dynamicdat {
     ${JAR} gen dynamicdat ${STATIC_PATH}
+    mv ${DYNAMIC_PATH} "${DYNAMIC_PATH}.${1}"
 }
 
 function cim_call {
-    ${JAR} cim ${STATIC_PATH} ${DYNAMIC_PATH} ${M} ${RC} ${PERIODIC_BOUNDS} > /dev/null
+    ${JAR} cim ${STATIC_PATH} ${1} ${M} ${RC} ${PERIODIC_BOUNDS}
 }
 
 function force_call {
-    ${JAR} force ${STATIC_PATH} ${DYNAMIC_PATH} ${RC} ${PERIODIC_BOUNDS} > /dev/null
+    ${JAR} force ${STATIC_PATH} ${1} ${RC} ${PERIODIC_BOUNDS}
 }
 
 function gen_output_table_file {
@@ -100,38 +101,33 @@ M_MAX=$6
 PERIODIC_BOUNDS=$7
 REPEAT=$8
 
-# echo "Cleaning output directory..."
-#
-# if [ -d $OUTPUT_FOLDER ]; then
-#     rm -rf $OUTPUT_FOLDER
-# fi
-# mkdir $OUTPUT_FOLDER
-#
-# echo "[DONE]"
-
 echo "Generating static.dat file..."
-
 gen_staticdat ${N} ${L} ${R}
 
-echo "[DONE]"
+echo "Generating dynamic.dat files for each iteration..."
+for i in `seq 1 ${REPEAT}`; do
+    PERCENTAGE_COMPLETED=$(bc <<< "scale=2;$i/$REPEAT * 100")
+    echo -ne "\t\tCompleted...$PERCENTAGE_COMPLETED%\r" # A % completed value
+	gen_dynamicdat $i
+done
 
 OUTPUT_TABLE_PATH=`gen_output_table_file ${PERIODIC_BOUNDS} ${N}`
 
 echo "Simulation for Cell Index Method..."
 
 for M in `seq ${M_MIN} ${M_MAX}`; do
-	echo "\tRunning simulation $REPEAT times for M = $M"
+	echo $'\t'"Running simulation $REPEAT times for M = $M"
 
 	# Reset values
 	MEAN_ACCUMULATOR=0
 	VARIANCE_ACCUMULATOR=0
 
 	for i in `seq 1 ${REPEAT}`; do
-	    gen_dynamicdat
-	    cim_call
+	    cim_call "${DYNAMIC_PATH}.${i}"
         PERCENTAGE_COMPLETED=$(bc <<< "scale=2;$i/$REPEAT * 100")
         echo -ne "\t\tCompleted...$PERCENTAGE_COMPLETED%\r" # A % completed value
 	    TIME=`head -n 1 ${SIM_OUTPUT_PATH}`
+	    echo ${TIME}
 	    MEAN_ACCUMULATOR=$(bc <<< "scale=2;$MEAN_ACCUMULATOR + $TIME")
 	    VARIANCE_ACCUMULATOR=$(bc <<< "scale=2;$VARIANCE_ACCUMULATOR + $TIME * $TIME")
 	done
@@ -139,21 +135,17 @@ for M in `seq ${M_MIN} ${M_MAX}`; do
 	VARIANCE=$(bc <<< "scale=2;$VARIANCE_ACCUMULATOR/$REPEAT - $MEAN * $MEAN")
 	COLUMN_M_TIME="$M, $MEAN, $VARIANCE" # Get the M value and the time in milliseconds at the first line
 	echo ${COLUMN_M_TIME}$'\r' >> ${OUTPUT_TABLE_PATH}
-	echo "[DONE]"
 done
 
-echo "[DONE]"
 
 echo "Simulation for Brute Force Method..."
 
-    # one empty line on the .csv file
-    echo $'\r' >> ${OUTPUT_TABLE_PATH}
+# one empty line on the .csv file
+echo $'\r' >> ${OUTPUT_TABLE_PATH}
 
-    echo "Brute Force Method"$'\r' >> ${OUTPUT_TABLE_PATH}
-    echo "time(milliseconds)"$'\r' >> ${OUTPUT_TABLE_PATH}
+echo "Brute Force Method"$'\r' >> ${OUTPUT_TABLE_PATH}
+echo "time(milliseconds)"$'\r' >> ${OUTPUT_TABLE_PATH}
 
-    force_call
-    TIME=`head -n 1 ${SIM_OUTPUT_PATH}`
-    echo ${TIME}$'\r' >> ${OUTPUT_TABLE_PATH}
-
-echo "[DONE]"
+force_call "${DYNAMIC_PATH}.1"
+TIME=`head -n 1 ${SIM_OUTPUT_PATH}`
+echo ${TIME}$'\r' >> ${OUTPUT_TABLE_PATH}

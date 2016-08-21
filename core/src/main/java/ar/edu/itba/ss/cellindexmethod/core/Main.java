@@ -168,17 +168,16 @@ public class Main {
 		}
 		
 		// run cell index method
-		final long startTime = System.currentTimeMillis();
 		final CellIndexMethod cim = new CellIndexMethodImpl();
+		final long startTime = System.currentTimeMillis();
 		final Map<Point, Set<Point>> pointsWithNeighbours = cim.run(points, staticData.L, M, rc, periodicLimit);
+		final long endTime = System.currentTimeMillis();
 		if (pointsWithNeighbours == null) {
 			System.out.println("[FAIL] - The M value does not met the condition: " +
 							"L/M > rc + r1 + r2 for every pair of particles.\n" +
 							"Aborting...");
 			exit(BAD_ARGUMENT);
 		}
-		
-		final long endTime = System.currentTimeMillis();
 		
 		final long deltaTime = endTime - startTime;
 		

@@ -2,11 +2,14 @@ package ar.edu.itba.ss.cellindexmethod.services;
 
 import ar.edu.itba.ss.cellindexmethod.interfaces.CellIndexMethod;
 import ar.edu.itba.ss.cellindexmethod.models.Point;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 
 public class CellIndexMethodImpl implements CellIndexMethod {
+	private static final Logger LOGGER = LoggerFactory.getLogger(CellIndexMethodImpl.class);
 	
 	/**
 	 * On the run method, given a cell (row, col), it is necessary to compare with itself
@@ -50,14 +53,15 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 		
 		final Map<Point, Set<Point>> collisionPerPoint = new HashMap<>(points.size());
 		final Set<Cell> nonEmptyCells = new HashSet<>();
-		points.forEach(point -> {
+		
+		for (Point point : points) {
 			// add the point to the map to be returned, with a new empty set
 			collisionPerPoint.put(point, new HashSet<>());
 			
 			// put each point on the corresponding cell of the cell's matrix
 			// save the cell as a non empty one, to analyse it later
 			nonEmptyCells.add(saveToMatrix(L, M, point, cellMatrix));
-		});
+		}
 		
 		// run the cell index method itself
 		run(L, nonEmptyCells, cellMatrix, rc, periodicLimit, collisionPerPoint);
