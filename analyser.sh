@@ -23,6 +23,9 @@ M_MAX=$5
 PERIODIC_BOUNDS=$6
 REPEAT=$7
 
+echo -e "------------------------------------"
 for N in 100 500 750 1000 1100 ; do
+    echo -e "** Running 'optimusM.sh' with N = ${N}... **"
     ./optimusM.sh $N $L $R $RC $M_MIN $M_MAX $PERIODIC_BOUNDS $REPEAT
+    echo -e "------------------------------------"
 done

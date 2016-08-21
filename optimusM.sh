@@ -26,6 +26,7 @@ OUTPUT_FOLDER="$RELATIVE_PROJECT_FOLDER/output"
 STATIC_PATH="$OUTPUT_FOLDER/static.dat"
 DYNAMIC_PATH="$OUTPUT_FOLDER/dynamic.dat"
 SIM_OUTPUT_PATH="$OUTPUT_FOLDER/output.dat"
+SCRIPT_LOGGER="$OUTPUT_FOLDER/analysis.sh.log"
 
 # Prefix identifier of the output table
 OUTPUT_NAIVE_PATH="$OUTPUT_FOLDER/optimum_graph_"
@@ -36,22 +37,32 @@ OUTPUT_TABLE_TYPE=".csv"
 
 JAR="java -jar $RELATIVE_PROJECT_FOLDER/core/target/core-1.0-SNAPSHOT-jar-with-dependencies.jar"
 
+function validate_exit_status {
+    if [ $? -ne 0 ]
+    then
+        echo "[FAIL] - check ${SCRIPT_LOGGER} file for more information"
+        echo "Simulation will continue although, but problems may arise due to the previous one"
+    else
+        echo "[DONE]"
+    fi
+}
+
 # Generate static file
 function gen_staticdat {
-    ${JAR} gen staticdat ${1} ${2} ${3}
+    ${JAR} gen staticdat ${1} ${2} ${3} >> ${SCRIPT_LOGGER} 2>&1
 }
 
 function gen_dynamicdat {
-    ${JAR} gen dynamicdat ${STATIC_PATH}
+    ${JAR} gen dynamicdat ${STATIC_PATH} >> ${SCRIPT_LOGGER} 2>&1
     mv ${DYNAMIC_PATH} "${DYNAMIC_PATH}.${1}"
 }
 
 function cim_call {
-    ${JAR} cim ${STATIC_PATH} ${1} ${M} ${RC} ${PERIODIC_BOUNDS}
+    ${JAR} cim ${STATIC_PATH} ${1} ${M} ${RC} ${PERIODIC_BOUNDS} >> ${SCRIPT_LOGGER} 2>&1
 }
 
 function force_call {
-    ${JAR} force ${STATIC_PATH} ${1} ${RC} ${PERIODIC_BOUNDS}
+    ${JAR} force ${STATIC_PATH} ${1} ${RC} ${PERIODIC_BOUNDS} >> ${SCRIPT_LOGGER} 2>&1
 }
 
 function gen_output_table_file {
@@ -101,33 +112,40 @@ M_MAX=$6
 PERIODIC_BOUNDS=$7
 REPEAT=$8
 
-echo "Generating static.dat file..."
+echo -ne "Generating static.dat file... "
 gen_staticdat ${N} ${L} ${R}
+validate_exit_status
 
 echo "Generating dynamic.dat files for each iteration..."
 for i in `seq 1 ${REPEAT}`; do
     PERCENTAGE_COMPLETED=$(bc <<< "scale=2;$i/$REPEAT * 100")
     echo -ne "\t\tCompleted...$PERCENTAGE_COMPLETED%\r" # A % completed value
 	gen_dynamicdat $i
+	echo -ne "\t"
+	validate_exit_status
 done
+echo -e "[DONE]\n"
 
 OUTPUT_TABLE_PATH=`gen_output_table_file ${PERIODIC_BOUNDS} ${N}`
 
-echo "Simulation for Cell Index Method..."
+echo "Simulation for Cell Index Method... "
 
 for M in `seq ${M_MIN} ${M_MAX}`; do
-	echo $'\t'"Running simulation $REPEAT times for M = $M"
+	echo -e "\tRunning simulation $REPEAT times for M = $M..."
 
 	# Reset values
 	MEAN_ACCUMULATOR=0
 	VARIANCE_ACCUMULATOR=0
 
 	for i in `seq 1 ${REPEAT}`; do
+	    PERCENTAGE_COMPLETED=$(bc <<< "scale=2;$i/$REPEAT * 100")
+        echo -ne "\t\t\tCompleted...$PERCENTAGE_COMPLETED%\r" # A % completed value
+
 	    cim_call "${DYNAMIC_PATH}.${i}"
-        PERCENTAGE_COMPLETED=$(bc <<< "scale=2;$i/$REPEAT * 100")
-        echo -ne "\t\tCompleted...$PERCENTAGE_COMPLETED%\r" # A % completed value
+	    echo -ne "\t\t"
+	    validate_exit_status
+
 	    TIME=`head -n 1 ${SIM_OUTPUT_PATH}`
-	    echo ${TIME}
 	    MEAN_ACCUMULATOR=$(bc <<< "scale=2;$MEAN_ACCUMULATOR + $TIME")
 	    VARIANCE_ACCUMULATOR=$(bc <<< "scale=2;$VARIANCE_ACCUMULATOR + $TIME * $TIME")
 	done
@@ -135,10 +153,12 @@ for M in `seq ${M_MIN} ${M_MAX}`; do
 	VARIANCE=$(bc <<< "scale=2;$VARIANCE_ACCUMULATOR/$REPEAT - $MEAN * $MEAN")
 	COLUMN_M_TIME="$M, $MEAN, $VARIANCE" # Get the M value and the time in milliseconds at the first line
 	echo ${COLUMN_M_TIME}$'\r' >> ${OUTPUT_TABLE_PATH}
+
+	echo -e "\t[DONE]"
 done
+echo -e "[DONE]\n"
 
-
-echo "Simulation for Brute Force Method..."
+echo -ne "Simulation for Brute Force Method... "
 
 # one empty line on the .csv file
 echo $'\r' >> ${OUTPUT_TABLE_PATH}
@@ -147,5 +167,7 @@ echo "Brute Force Method"$'\r' >> ${OUTPUT_TABLE_PATH}
 echo "time(milliseconds)"$'\r' >> ${OUTPUT_TABLE_PATH}
 
 force_call "${DYNAMIC_PATH}.1"
+validate_exit_status
+
 TIME=`head -n 1 ${SIM_OUTPUT_PATH}`
 echo ${TIME}$'\r' >> ${OUTPUT_TABLE_PATH}
