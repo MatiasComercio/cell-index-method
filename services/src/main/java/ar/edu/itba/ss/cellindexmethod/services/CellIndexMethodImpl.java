@@ -39,9 +39,11 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 			throw new IllegalArgumentException("Check that this is happening, but must not: M <= 0 or rc < 0 or L <= 0");
 		}
 		
-		if (!mConditionIsMet(L,M,rc,points)) {
-			return null;
-		}
+		// +++xchange: move to another place
+		// +++xdocument: not going to check this inside this method
+//		if (!mConditionIsMet(L,M,rc,points)) {
+//			return null;
+//		}
 		
 		// create the square cell matrix
 		final SquareMatrix cellMatrix = new SquareMatrix(M);
@@ -142,16 +144,18 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 						continue; // do not consider this cell, because it does not exists
 					}
 				} else {
+					// oRow condition
 					if (oRow < 0) {
 						oRow = M - 1;
 						virtualPointNeeded = true;
 						yOffset = L;
-					}
-					if (oRow == M) {
+					} else if (oRow == M) {
 						oRow = 0;
 						virtualPointNeeded = true;
 						yOffset = -L;
 					}
+					
+					// oCol condition
 					if (oCol == M) {
 						oCol = 0;
 						virtualPointNeeded = true;
@@ -161,13 +165,32 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 				
 				oCell = cellMatrix.get(oRow, oCol);
 				
-				if (nonEmptyCells.contains(oCell)) { // so as not to create overhead; if empty => no necessary to process
-					// check the distance between each pair of points on the current pair of cells,
+				// checks if it is the same cell
+				if (cCell.equals(oCell)) {
+					// if so, check collisions only on the current cell, using an improvement of the brute force method
+					checkCollisions(cCell, rc, collisionPerPoint);
+				} else if (nonEmptyCells.contains(oCell)) {
+					// so as not to create overhead; if empty => no necessary to process
+					
+					// if !empty => check the distance between each pair of points on the current pair of cells,
 					// and add the necessary mappings, if two points collide
 					checkCollisions(cCell, oCell, rc, collisionPerPoint, virtualPointNeeded, xOffset, yOffset);
 				}
 			}
 		});
+	}
+	
+	private void checkCollisions(final Cell cCell, final double rc, final Map<Point, Set<Point>> collisionPerPoint) {
+		Point[] points = new Point[cCell.points.size()];
+		points = cCell.points.toArray(points);
+		Point pi, pj;
+		for (int i = 0 ; i < points.length ; i++) {
+			pi = points[i];
+			for (int j = i+1 ; j < points.length ; j++) {
+				pj = points[j];
+				CellIndexMethods.checkCollision(pi,pj,rc, collisionPerPoint);
+			}
+		}
 	}
 	
 	/**
@@ -296,6 +319,23 @@ public class CellIndexMethodImpl implements CellIndexMethod {
 			this.col = col;
 		}
 		
+		@Override
+		public boolean equals(final Object o) {
+			if (this == o) return true;
+			if (!(o instanceof Cell)) return false;
+			
+			final Cell cell = (Cell) o;
+			
+			return row == cell.row && col == cell.col;
+			
+		}
+		
+		@Override
+		public int hashCode() {
+			int result = row;
+			result = 31 * result + col;
+			return result;
+		}
 	}
 	
 	private static class SquareMatrix {
