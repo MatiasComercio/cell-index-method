@@ -19,7 +19,8 @@ public interface CellIndexMethod {
 	 * to apply the algorithm.
 	 * <p>
 	 * Important note: take into consideration that this algorithm for work requires that
-	 * the condition L/M > rc + r1 + r2 is met for every pair of points. If this was not to happen, null is returned
+	 * the condition L/M > rc + r1 + r2 is met for every pair of points. However, this condition is not check,
+	 * so be sure that it is met so as to garanty that the value returned by this method is valid and real
 	 *
 	 * @param points set containing the points for the algorithm
 	 * @param L length of the side of the square containing all the points of the set. Must be positive.
@@ -27,7 +28,7 @@ public interface CellIndexMethod {
 	 * @param rc max distance to consider that two points. Must be non negative.
 	 * @param periodicLimit if the end of a limit cell should be consider as it were from the opposite side
 	 * @return a map containing as key each of the points of the set, and a list of the points with the ones
-	 * each point collides; if condition L/M > rc + r1 + r2 is not met, null is returned
+	 * each point collides
 	 *
 	 * @throws IllegalArgumentException if M <= 0 or rc < 0 or L <= 0
 	 */

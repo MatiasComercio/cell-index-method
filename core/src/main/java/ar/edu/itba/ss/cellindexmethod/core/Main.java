@@ -6,6 +6,7 @@ import ar.edu.itba.ss.cellindexmethod.models.ParticleType;
 import ar.edu.itba.ss.cellindexmethod.models.Point;
 import ar.edu.itba.ss.cellindexmethod.services.BruteForceMethodImpl;
 import ar.edu.itba.ss.cellindexmethod.services.CellIndexMethodImpl;
+import ar.edu.itba.ss.cellindexmethod.services.CellIndexMethods;
 import ar.edu.itba.ss.cellindexmethod.services.PointFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,10 +168,18 @@ public class Main {
 			exit(BAD_ARGUMENT);
 		}
 		
+		// check the condition L/M > rc + r1 + r2
+		if (!CellIndexMethods.mConditionIsMet(staticData.L,M,rc,points)) {
+			System.out.println("[FAIL] -  the condition L/M > rc + r1 + r2 is met for each pair of points.\n" +
+							"Please check the input files.");
+			exit(BAD_ARGUMENT);
+		}
+		
 		// run cell index method
-		final long startTime = System.nanoTime();
 		final CellIndexMethod cim = new CellIndexMethodImpl();
+		final long startTime = System.currentTimeMillis();
 		final Map<Point, Set<Point>> pointsWithNeighbours = cim.run(points, staticData.L, M, rc, periodicLimit);
+		final long endTime = System.currentTimeMillis();
 		if (pointsWithNeighbours == null) {
 			System.out.println("[FAIL] - The M value does not met the condition: " +
 							"L/M > rc + r1 + r2 for every pair of particles.\n" +
@@ -178,15 +187,13 @@ public class Main {
 			exit(BAD_ARGUMENT);
 		}
 		
-		final long endTime = System.nanoTime();
-		
 		final long deltaTime = endTime - startTime;
 		
 		
 		// write pointsWithNeighbours to a file called "output.dat"
 		generateOutputDatFile(pointsWithNeighbours, deltaTime);
 	}
-
+	
 	private static void bruteForceMethod(final String[] args) {
 		if (args.length != 5) {
 			System.out.println("[FAIL] - Bad number of arguments. Try 'help' for more information.");
@@ -224,12 +231,12 @@ public class Main {
 		}
 
 		// run brute force method
-		final long startTime = System.nanoTime();
+		final long startTime = System.currentTimeMillis();
 
 		final BruteForceMethod forceMethod = new BruteForceMethodImpl();
 		final Map<Point, Set<Point>> pointsWithNeighbours = forceMethod.run(points, staticData.L, rc, periodicLimit);
 
-		final long endTime = System.nanoTime();
+		final long endTime = System.currentTimeMillis();
 
 		final long deltaTime = endTime - startTime;
 
@@ -256,7 +263,7 @@ public class Main {
 		BufferedWriter writer = null;
 		try {
 			writer = new BufferedWriter(new FileWriter(pathToDatFile.toFile()));
-			writer.write(String.valueOf(deltaTime)); // nano seconds of execution
+			writer.write(String.valueOf(deltaTime)); // milliseconds of execution
 			writer.write("\n");
 			writer.write(data); // list of neighbours per point
 			
@@ -423,7 +430,8 @@ public class Main {
 		final Point leftBottomPoint = Point.builder(0, 0).build();
 		final Point rightTopPoint = Point.builder(staticData.L, staticData.L).build();
 		
-		final Set<Point> pointsSet = pF.randomPoints(leftBottomPoint, rightTopPoint, staticData.radios, false, 10);
+		final Set<Point> pointsSet = pF.randomPoints(leftBottomPoint, rightTopPoint,
+						staticData.radios, false, Integer.MAX_VALUE);
 		
 		if (pointsSet.size() < staticData.radios.length) {
 			System.out.println("[FAIL] - Could not generate all the particles from the static file.\n" +

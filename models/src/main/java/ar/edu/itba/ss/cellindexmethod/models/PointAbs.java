@@ -19,12 +19,15 @@ public abstract class PointAbs {
 	}
 	
 	@Builder.Parameter
+	@Value.Auxiliary
 	public abstract double x();
 	
 	@Builder.Parameter
+	@Value.Auxiliary
 	public abstract double y();
 	
 	@Value.Default
+	@Value.Auxiliary
 	public double radio() {
 		return 0;
 	}
@@ -34,6 +37,20 @@ public abstract class PointAbs {
 		if (radio() < 0) {
 			throw new IllegalArgumentException("Radio should be >= 0");
 		}
+	}
+	
+	/**
+	 * Prints the immutable value {@code Point} with attribute values.
+	 * @return A string representation of the value
+	 */
+	@Override
+	public String toString() {
+		return "Point{"
+						+ "id=" + id()
+						+ ", x=" + x()
+						+ ", y=" + y()
+						+ ", radio=" + radio()
+						+ "}";
 	}
 	
 	/* for testing purposes only */
