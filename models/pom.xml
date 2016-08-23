@@ -5,10 +5,10 @@
   <parent>
     <groupId>ar.edu.itba.ss.cellindexmethod</groupId>
     <artifactId>cell-index-method</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0.RELEASE</version>
   </parent>
   <artifactId>models</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0.0.RELEASE</version>
   <name>models</name>
   <url>http://maven.apache.org</url>
   <properties>
