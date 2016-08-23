@@ -36,7 +36,7 @@ OUTPUT_PB_PATH="$OUTPUT_FOLDER/optimum_graph_pb_"
 # Extension of the output table
 OUTPUT_TABLE_TYPE=".csv"
 
-JAR="java -jar $PROJECT_FOLDER/core/target/core-1.0-SNAPSHOT-jar-with-dependencies.jar"
+JAR="java -jar $PROJECT_FOLDER/core/target/core-1.0.0.RELEASE-jar-with-dependencies.jar"
 
 function validate_exit_status {
     if [ $? -ne 0 ]

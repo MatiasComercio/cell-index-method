@@ -9,11 +9,11 @@ Then, run
 ## Execution
 To run the program, from the root folder
 
-    $ java -jar core/target/core-1.0-SNAPSHOT-jar-with-dependencies.jar <arguments>
+    $ java -jar core/target/core-1.0.0.RELEASE-jar-with-dependencies.jar <arguments>
 
 Check the list of available arguments as follows, from the root folder
 
-    $ java -jar core/target/core-1.0-SNAPSHOT-jar-with-dependencies.jar help
+    $ java -jar core/target/core-1.0.0.RELEASE-jar-with-dependencies.jar help
 
 ## Simulation
 Bash files were added to $PROJECT_FOLDER/resources/bin.
